@@ -1048,8 +1048,8 @@ export default function FitApp() {
         <style>{globalCSS}</style>
         <div style={{ minHeight: "100vh", padding: "48px 24px 40px", maxWidth: 400, margin: "0 auto" }}>
 
-          <div style={{ textAlign: "center", marginBottom: 32 }}>
-            <h1 style={{ ...s.logo, marginBottom: 8, lineHeight: 0.85, textAlign: "center" }}>
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{ ...s.logo, marginBottom: 8, lineHeight: 0.85 }}>
               <span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span><br/>
               <span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span>
             </h1>
