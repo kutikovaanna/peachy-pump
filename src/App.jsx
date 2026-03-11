@@ -1042,70 +1042,107 @@ export default function FitApp() {
 
   // ===== ONBOARDING =====
   if (!onboarded) {
+    const stepTitles = ["Vybavení", "O tobě", "Síla"];
     return (
       <div style={s.appWrap}>
         <style>{globalCSS}</style>
-        <div style={s.onboardContainer}>
-          <div style={s.onboardEmoji}>{I(onboardStep === 1 ? IC.zap : onboardStep === 2 ? IC.user : IC.dumbbell, 56)}</div>
-          <h1 style={{ ...s.onboardTitle, wordSpacing: "-8px" }}><span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span> <span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span></h1>
+        <div style={{ minHeight: "100vh", padding: "48px 24px 40px", maxWidth: 400, margin: "0 auto" }}>
 
-          {onboardStep === 1 && (<>
-            <p style={s.onboardSubtitle}>Jaké vybavení máš k dispozici?</p>
-            <div style={s.eqGrid}>
-              {EQUIPMENT_OPTIONS.map(eq => (
-                <button key={eq.id} onClick={() => toggleEquipment(eq.id)}
-                  style={{ ...s.eqBtn, ...(equipment.includes(eq.id) ? s.eqBtnActive : {}) }}>
-                  {I(EQ_ICONS[eq.id] || IC.dumbbell, 28)}
-                  <span style={{ fontSize: 13 }}>{eq.label}</span>
-                </button>
-              ))}
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <h1 style={{ ...s.logo, marginBottom: 8, lineHeight: 0.85, textAlign: "center" }}>
+              <span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span><br/>
+              <span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span>
+            </h1>
+            <p style={{ fontSize: 14, color: C.textMuted, fontWeight: 600 }}>Tvůj osobní trenér v kapse</p>
+          </div>
+
+          <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
+            {[1, 2, 3].map(step => (
+              <div key={step} style={{ flex: 1, textAlign: "center" }}>
+                <div style={{
+                  height: 4, borderRadius: 2, marginBottom: 6,
+                  background: step <= onboardStep ? C.accent : C.border,
+                  transition: "background 0.3s"
+                }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: step === onboardStep ? C.accent : C.textMuted }}>{stepTitles[step - 1]}</span>
+              </div>
+            ))}
+          </div>
+
+          {onboardStep === 1 && (
+            <div style={{ animation: "viewSlideIn 0.3s ease" }}>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>Jaké máš vybavení?</h2>
+              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>Vyber vše, co máš k dispozici</p>
+              <div style={s.eqGrid}>
+                {EQUIPMENT_OPTIONS.map(eq => (
+                  <button key={eq.id} onClick={() => toggleEquipment(eq.id)}
+                    style={{ ...s.eqBtn, ...(equipment.includes(eq.id) ? s.eqBtnActive : {}) }}>
+                    {I(EQ_ICONS[eq.id] || IC.dumbbell, 28)}
+                    <span style={{ fontSize: 13 }}>{eq.label}</span>
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => setOnboardStep(2)}
+                style={{ ...s.generateBtn, marginTop: 8 }} disabled={equipment.length === 0}>
+                <div style={s.shimmer} />Další
+              </button>
             </div>
-            <button onClick={() => setOnboardStep(2)} style={s.primaryBtn} disabled={equipment.length === 0}>
-              Další →
-            </button>
-          </>)}
+          )}
 
-          {onboardStep === 2 && (<>
-            <p style={s.onboardSubtitle}>Řekni nám o sobě</p>
-            <div style={{ width: "100%", maxWidth: 400 }}>
-              <label style={s.inputLabel}>Věk
-                <input type="number" value={profile.age || ""} onChange={e => setProfile(p => ({ ...p, age: e.target.value }))} style={s.profileInput} placeholder="25" />
-              </label>
-              <label style={s.inputLabel}>Váha (kg)
-                <input type="number" value={profile.weight || ""} onChange={e => setProfile(p => ({ ...p, weight: e.target.value }))} style={s.profileInput} placeholder="70" />
-              </label>
-              <label style={s.inputLabel}>Pohlaví
-                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+          {onboardStep === 2 && (
+            <div style={{ animation: "viewSlideIn 0.3s ease" }}>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>Něco o tobě</h2>
+              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>Pomůže to lépe nastavit tréninky</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+                <div style={{ background: C.cardGrad, borderRadius: C.r, padding: 16, border: C.cardBorder, boxShadow: C.shadow }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6 }}>Věk</label>
+                  <input type="number" value={profile.age || ""} onChange={e => setProfile(p => ({ ...p, age: e.target.value }))} style={s.profileInput} placeholder="25" />
+                </div>
+                <div style={{ background: C.cardGrad, borderRadius: C.r, padding: 16, border: C.cardBorder, boxShadow: C.shadow }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6 }}>Váha (kg)</label>
+                  <input type="number" value={profile.weight || ""} onChange={e => setProfile(p => ({ ...p, weight: e.target.value }))} style={s.profileInput} placeholder="70" />
+                </div>
+              </div>
+              <div style={{ background: C.cardGrad, borderRadius: C.r, padding: 16, border: C.cardBorder, boxShadow: C.shadow, marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 8 }}>Pohlaví</label>
+                <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => setProfile(p => ({ ...p, gender: "female" }))}
                     style={{ ...s.genderBtn, ...(profile.gender === "female" ? s.genderBtnActive : {}) }}>Žena</button>
                   <button onClick={() => setProfile(p => ({ ...p, gender: "male" }))}
                     style={{ ...s.genderBtn, ...(profile.gender === "male" ? s.genderBtnActive : {}) }}>Muž</button>
                 </div>
-              </label>
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setOnboardStep(1)} style={{ ...s.backBtn, width: 48, height: 48 }}>{I(IC.back, 22)}</button>
+                <button onClick={() => setOnboardStep(3)}
+                  style={{ ...s.generateBtn, flex: 1 }} disabled={!profile.age || !profile.weight}>
+                  <div style={s.shimmer} />Další
+                </button>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 400, marginTop: 24 }}>
-              <button onClick={() => setOnboardStep(1)} style={{ ...s.secondaryBtn, flex: 1 }}>← Zpět</button>
-              <button onClick={() => setOnboardStep(3)} style={{ ...s.primaryBtn, flex: 2 }} disabled={!profile.age || !profile.weight}>Další →</button>
-            </div>
-          </>)}
+          )}
 
-          {onboardStep === 3 && (<>
-            <p style={s.onboardSubtitle}>Jaké váhy teď zvedáš?</p>
-            <div style={{ width: "100%", maxWidth: 400 }}>
+          {onboardStep === 3 && (
+            <div style={{ animation: "viewSlideIn 0.3s ease" }}>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>Jaké váhy zvedáš?</h2>
+              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>Nemusíš vyplnit vše — upřesníš později</p>
               {KEY_LIFT_EXERCISES.map(name => (
-                <label key={name} style={s.inputLabel}>{name}
+                <div key={name} style={{ background: C.cardGrad, borderRadius: C.r, padding: "12px 16px", border: C.cardBorder, boxShadow: C.shadow, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text, flex: 1 }}>{name}</span>
                   <input type="number" value={profile.keyLifts?.[name] || ""}
                     onChange={e => setProfile(p => ({ ...p, keyLifts: { ...p.keyLifts, [name]: e.target.value ? parseFloat(e.target.value) : "" } }))}
-                    style={s.profileInput} placeholder="kg" />
-                </label>
+                    style={{ ...s.profileInput, width: 80, marginTop: 0, textAlign: "center" }} placeholder="kg" />
+                </div>
               ))}
-              <p style={{ color: C.textMuted, fontSize: 12, marginTop: 8 }}>Nemusíš vyplňovat všechno — doplníš později v nastavení.</p>
+              <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+                <button onClick={() => setOnboardStep(2)} style={{ ...s.backBtn, width: 48, height: 48 }}>{I(IC.back, 22)}</button>
+                <button onClick={finishOnboarding}
+                  style={{ ...s.generateBtn, flex: 1 }}>
+                  <div style={s.shimmer} />{I(IC.zap, 22, "#fff")} Pojďme trénovat!
+                </button>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 400, marginTop: 24 }}>
-              <button onClick={() => setOnboardStep(2)} style={{ ...s.secondaryBtn, flex: 1 }}>← Zpět</button>
-              <button onClick={finishOnboarding} style={{ ...s.primaryBtn, flex: 2 }}>Pojďme trénovat! →</button>
-            </div>
-          </>)}
+          )}
         </div>
       </div>
     );
@@ -2193,15 +2230,9 @@ const styles = {
   appWrap: { fontFamily: F, background: C.bg, minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 84, overflow: "hidden" },
   toast: { position: "fixed", bottom: 94, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "12px 28px", borderRadius: C.rPill, fontWeight: 800, fontSize: 15, zIndex: 999, animation: "toastIn 0.3s ease", boxShadow: C.shadowLg, fontFamily: F },
   page: { padding: "24px 18px 40px" },
-  onboardContainer: { minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 28 },
-  onboardEmoji: { fontSize: 72, marginBottom: 20, animation: "pulse 2s infinite" },
-  onboardTitle: { fontSize: 44, fontWeight: 900, color: C.text, marginBottom: 10, letterSpacing: -1 },
-  onboardSubtitle: { color: C.textSec, fontSize: 17, marginBottom: 36, fontWeight: 600 },
-  eqGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, width: "100%", maxWidth: 400, marginBottom: 28 },
-  eqBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 12px", background: C.card, border: "2px solid transparent", borderRadius: C.r, color: C.textSec, cursor: "pointer", transition: "all 0.2s", boxShadow: C.shadow, fontFamily: F, fontWeight: 700 },
+  eqGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, width: "100%", marginBottom: 24 },
+  eqBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 12px", background: C.cardGrad, border: C.cardBorder, borderRadius: C.r, color: C.textSec, cursor: "pointer", transition: "all 0.2s", boxShadow: C.shadow, fontFamily: F, fontWeight: 700 },
   eqBtnActive: { background: C.accentLight, borderColor: C.accent, color: C.text },
-  primaryBtn: { width: "100%", maxWidth: 400, padding: "18px 32px", background: C.dark, border: "none", borderRadius: C.rPill, color: "#fff", fontSize: 18, fontWeight: 800, fontFamily: F, cursor: "pointer", letterSpacing: 0.3, boxShadow: C.shadowLg },
-  secondaryBtn: { width: "100%", padding: "16px 24px", background: C.card, border: `2px solid ${C.border}`, borderRadius: C.rPill, color: C.textSec, fontSize: 16, fontWeight: 700, fontFamily: F, cursor: "pointer" },
   headerArea: { marginBottom: 28 },
   logo: { fontSize: "min(12vw, 48px)", fontWeight: 900, color: C.text, letterSpacing: -2, marginBottom: 20 },
   statsRow: { display: "flex", gap: 10 },
@@ -2263,8 +2294,8 @@ const styles = {
   weakPointCard: { background: C.cardGrad, borderRadius: C.r, padding: "14px 18px", marginBottom: 10, boxShadow: C.shadow, border: C.cardBorder },
   settingsHeading: { color: C.textSec, fontSize: 15, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 },
   inputLabel: { display: "block", color: C.text, fontSize: 14, fontWeight: 700, marginBottom: 16 },
-  profileInput: { width: "100%", background: C.bg, border: "none", borderRadius: 14, padding: "12px 16px", color: C.text, fontSize: 16, fontFamily: F, fontWeight: 600, outline: "none", marginTop: 8 },
-  genderBtn: { flex: 1, padding: "12px", background: C.card, border: "2px solid transparent", borderRadius: 14, color: C.textMuted, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, transition: "all 0.2s", boxShadow: C.shadow },
+  profileInput: { width: "100%", background: C.bg, border: "none", borderRadius: 10, padding: "12px 14px", color: C.text, fontSize: 16, fontFamily: F, fontWeight: 600, outline: "none", marginTop: 0 },
+  genderBtn: { flex: 1, padding: "12px", background: C.bg, border: "2px solid transparent", borderRadius: 10, color: C.textMuted, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, transition: "all 0.2s" },
   genderBtnActive: { background: C.accentLight, borderColor: C.accent, color: C.text },
   rpeRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", background: C.bg, borderRadius: `0 0 ${C.r}px ${C.r}px`, gap: 8, flexWrap: "wrap" },
   rpeLabel: { fontSize: 13, color: C.textSec, fontWeight: 700 },
