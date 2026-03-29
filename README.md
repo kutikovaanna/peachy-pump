@@ -1,4 +1,4 @@
-# ⚡ POWERFIT — Tréninkový generátor
+# ⚡ PEACHY PUMP — Tréninkový generátor
 
 AI tréninkový generátor s progressive overload, regenerací svalů a historií tréninků.
 
