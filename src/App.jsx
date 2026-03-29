@@ -1566,7 +1566,7 @@ export default function FitApp() {
               <p style={{ color: C.textSec, fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>{selectedExercise.desc || exLib?.desc}</p>
 
               <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(lang === "en" ? (NAMES_EN[selectedExercise.name] || selectedExercise.name) + " exercise form" : selectedExercise.name + " cvik technika")}`}
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent((NAMES_EN[selectedExercise.name] || selectedExercise.name) + " exercise form")}`}
                 target="_blank" rel="noopener noreferrer"
                 style={s.videoBtn}
               >
