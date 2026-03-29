@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 const I = (d, size = 24, stroke = "currentColor") => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block", flexShrink: 0 }}><path d={d}/></svg>
@@ -327,6 +327,165 @@ const NAMES_EN = {
   "Cable woodchops": "Cable Woodchops", "Dead bug": "Dead Bug", "Ab rollout": "Ab Rollout",
   "Hip thrust": "Hip Thrust", "Glute bridge": "Glute Bridge",
   "Sumo dřep": "Sumo Squat", "Kickback na kladce": "Cable Glute Kickback", "Step-up": "Step-up",
+};
+
+const MG_LABELS = {
+  cs: { Prsa: "Prsa", Záda: "Záda", Ramena: "Ramena", Biceps: "Biceps", Triceps: "Triceps", Nohy: "Nohy", Core: "Core", Hýždě: "Hýždě" },
+  en: { Prsa: "Chest", Záda: "Back", Ramena: "Shoulders", Biceps: "Biceps", Triceps: "Triceps", Nohy: "Legs", Core: "Core", Hýždě: "Glutes" },
+};
+
+const EQ_LABELS = {
+  cs: { barbell: "Činka (barbell)", dumbbells: "Jednoručky", bench: "Lavička", rack: "Stojan/Rack", cables: "Kladky/Kabely", machines: "Stroje", pullup_bar: "Hrazda", bands: "Gumy", bodyweight: "Vlastní váha", kettlebell: "Kettlebell" },
+  en: { barbell: "Barbell", dumbbells: "Dumbbells", bench: "Bench", rack: "Squat rack", cables: "Cables", machines: "Machines", pullup_bar: "Pull-up bar", bands: "Resistance bands", bodyweight: "Bodyweight", kettlebell: "Kettlebell" },
+};
+
+const UI = {
+  cs: {
+    nav: { home: "Domů", workout: "Trénink", library: "Cviky", settings: "Nastavení" },
+    onboard: {
+      subtitle: "Tvůj osobní trenér v kapse",
+      steps: ["Vybavení", "O tobě", "Síla"],
+      lang: "Jazyk",
+      eqTitle: "Jaké máš vybavení?", eqSub: "Vyber vše, co máš k dispozici",
+      aboutTitle: "Něco o tobě", aboutSub: "Pomůže to lépe nastavit tréninky",
+      liftTitle: "Jaké váhy zvedáš?", liftSub: "Nemusíš vyplnit vše — upřesníš později",
+      next: "Další", letsGo: "Pojďme trénovat!",
+      age: "Věk", weight: "Váha (kg)", gender: "Pohlaví", female: "Žena", male: "Muž",
+    },
+    home: {
+      total: "celkem", week: "týden",
+      continueWorkout: "Pokračovat v tréninku", generate: "Vygeneruj trénink",
+      streak: (n) => `Trénuješ ${n}. týden v řadě`,
+      months: ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"],
+      days: ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"],
+      workouts: (n) => n === 1 ? "trénink" : n >= 2 && n <= 4 ? "tréninky" : "tréninků",
+      mesocycle: "Mezocyklus",
+      weekOf: "Týden",
+      recovery: "Regenerace svalů",
+      phases: { Akumulace: "Akumulace", Zesilování: "Zesilování", Peak: "Peak", Deload: "Deload" },
+      phaseDesc: {
+        Akumulace: "Budování objemu – střední váhy, více opakování. Základ pro sílu.",
+        Zesilování: "Zvyšování intenzity – těžší váhy, méně opakování.",
+        Peak: "Maximální výkon – nejtěžší váhy, nejméně opakování, +1 série.",
+        Deload: "Regenerace – lehké váhy, vysoké opakování. Tělo se zotavuje.",
+      },
+    },
+    workout: {
+      title: "Dnešní trénink", rest: "Odpočinek", skip: "Přeskočit",
+      done: "hotovo", set: "Set", weightKg: "Váha (kg)", reps: "Opak.", timeS: "Čas (s)",
+      easy: "Easy", moderate: "Akorát", hard: "Dřina",
+      superset: "SUPERSET", supersetHint: "Střídej série: 1A → 1B → 2A → 2B …",
+      finish: "Dokončit trénink",
+      tags: { up: "↑ Zvýšeno", same: "→ Stejná váha", new: "✦ Nový", deload: "🧘 Deload", comeback: "↩ Návrat", profile: "Profil", bodyweight: "Vlastní váha", hold: "Výdrž" },
+    },
+    library: {
+      title: "Knihovna cviků", all: "Vše",
+      beginner: "začátečník", intermediate: "středně", advanced: "pokročilý",
+      compound: "Compound", isolation: "Izolace",
+    },
+    settings: {
+      title: "Nastavení", profile: "Profil",
+      age: "Věk", weight: "Váha (kg)", gender: "Pohlaví", female: "Žena", male: "Muž",
+      keyLifts: "Klíčové cviky (kg)", mesocycle: "Mezocyklus",
+      restartCycle: "Restartovat cyklus", cycleInfo: "Cyklus se spustí s prvním tréninkem.",
+      equipment: "Vybavení", language: "Jazyk",
+      deleteAll: "Smazat všechna data", deleteConfirm: "Opravdu smazat všechna data?",
+    },
+    modal: {
+      swap: "Vyměnit", yourEquip: "Tvé vybavení", otherOptions: "Další možnosti",
+      noAlts: "Žádné alternativy.",
+      howTo: "Jak na to", mistakes: "Časté chyby", history: "Historie výkonů",
+      date: "Datum", weightCol: "Váha", avgReps: "Ø Opak.", series: "Série",
+      video: "Podívej se na video ukázku",
+      beginner: "Začátečník", intermediate: "Střední", advanced: "Pokročilý",
+      compoundM: "Compound", isolationM: "Izolační",
+      sameMove: "stejný pohyb",
+    },
+    celebration: {
+      done: "Trénink hotový!",
+      exercises: "cviků", sets: "sérií", minutes: "minut",
+      milestone: (n) => `Milník: ${n}. trénink!`,
+      next: "Jdeme dál",
+      quotes: [
+        "Síla se rodí z důslednosti.", "Každý trénink tě posouvá dál.",
+        "Dnes jsi lepší než včera.", "Tvoje tělo ti děkuje.", "Beast mode: aktivováno.",
+      ],
+    },
+    toast: { swapped: "Cvik vyměněn!", deleted: "Trénink smazán", dataDeleted: "Data smazána" },
+  },
+  en: {
+    nav: { home: "Home", workout: "Workout", library: "Exercises", settings: "Settings" },
+    onboard: {
+      subtitle: "Your personal trainer in your pocket",
+      steps: ["Equipment", "About you", "Strength"],
+      lang: "Language",
+      eqTitle: "What equipment do you have?", eqSub: "Select everything available to you",
+      aboutTitle: "A bit about you", aboutSub: "Helps us customize your workouts",
+      liftTitle: "What weights do you lift?", liftSub: "You don't have to fill everything — adjust later",
+      next: "Next", letsGo: "Let's train!",
+      age: "Age", weight: "Weight (kg)", gender: "Gender", female: "Female", male: "Male",
+    },
+    home: {
+      total: "total", week: "week",
+      continueWorkout: "Continue workout", generate: "Generate workout",
+      streak: (n) => `${n}-week training streak`,
+      months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      workouts: () => "workouts",
+      mesocycle: "Mesocycle",
+      weekOf: "Week",
+      recovery: "Muscle recovery",
+      phases: { Akumulace: "Accumulation", Zesilování: "Intensification", Peak: "Peak", Deload: "Deload" },
+      phaseDesc: {
+        Akumulace: "Building volume — moderate weights, more reps. Foundation for strength.",
+        Zesilování: "Increasing intensity — heavier weights, fewer reps.",
+        Peak: "Maximum performance — heaviest weights, fewest reps, +1 set.",
+        Deload: "Recovery — light weights, high reps. Body recovers.",
+      },
+    },
+    workout: {
+      title: "Today's workout", rest: "Rest", skip: "Skip",
+      done: "done", set: "Set", weightKg: "Weight (kg)", reps: "Reps", timeS: "Time (s)",
+      easy: "Easy", moderate: "Moderate", hard: "Hard",
+      superset: "SUPERSET", supersetHint: "Alternate sets: 1A → 1B → 2A → 2B …",
+      finish: "Finish workout",
+      tags: { up: "↑ Increased", same: "→ Same weight", new: "✦ New", deload: "🧘 Deload", comeback: "↩ Return", profile: "Profile", bodyweight: "Bodyweight", hold: "Hold" },
+    },
+    library: {
+      title: "Exercise library", all: "All",
+      beginner: "beginner", intermediate: "intermediate", advanced: "advanced",
+      compound: "Compound", isolation: "Isolation",
+    },
+    settings: {
+      title: "Settings", profile: "Profile",
+      age: "Age", weight: "Weight (kg)", gender: "Gender", female: "Female", male: "Male",
+      keyLifts: "Key lifts (kg)", mesocycle: "Mesocycle",
+      restartCycle: "Restart cycle", cycleInfo: "Cycle starts with your first workout.",
+      equipment: "Equipment", language: "Language",
+      deleteAll: "Delete all data", deleteConfirm: "Really delete all data?",
+    },
+    modal: {
+      swap: "Swap", yourEquip: "Your equipment", otherOptions: "Other options",
+      noAlts: "No alternatives.",
+      howTo: "How to", mistakes: "Common mistakes", history: "Performance history",
+      date: "Date", weightCol: "Weight", avgReps: "Avg reps", series: "Sets",
+      video: "Watch video tutorial",
+      beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced",
+      compoundM: "Compound", isolationM: "Isolation",
+      sameMove: "same movement",
+    },
+    celebration: {
+      done: "Workout complete!",
+      exercises: "exercises", sets: "sets", minutes: "minutes",
+      milestone: (n) => `Milestone: workout #${n}!`,
+      next: "Let's go",
+      quotes: [
+        "Strength is born from consistency.", "Every workout pushes you further.",
+        "Today you're better than yesterday.", "Your body thanks you.", "Beast mode: activated.",
+      ],
+    },
+    toast: { swapped: "Exercise swapped!", deleted: "Workout deleted", dataDeleted: "Data deleted" },
+  },
 };
 
 const SPLIT_PATTERNS = [
@@ -751,7 +910,7 @@ function generateWorkout(equipment, history, cycle, profile, preferredGroups = n
       const reps = ex.isHold ? "30-60s" : weekConfig.reps[exType];
       const lastPerformance = getLastPerformance(ex.name, history);
       const overloadResult = ex.noWeight
-        ? { suggestedWeight: "", tag: "bodyweight", note: ex.isHold ? "Drž co nejdéle s čistou formou" : "", lastWeight: null }
+        ? { suggestedWeight: "", tag: "bodyweight", note: "", lastWeight: null }
         : calcProgression(lastPerformance, group, reps, weekConfig, profile?.keyLifts, ex.name);
 
       exercises.push({
@@ -866,7 +1025,8 @@ export default function FitApp() {
   const [onboarded, setOnboarded] = useState(savedData?.onboarded || false);
   const [profile, setProfile] = useState(savedData?.profile || { age: "", weight: "", gender: "female", keyLifts: {} });
   const [cycle, setCycle] = useState(savedData?.cycle || null);
-  const [onboardStep, setOnboardStep] = useState(1);
+  const [lang, setLang] = useState(savedData?.lang || "cs");
+  const [onboardStep, setOnboardStep] = useState(0);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [swapTarget, setSwapTarget] = useState(null);
   const [toastMsg, setToastMsg] = useState(null);
@@ -890,12 +1050,17 @@ export default function FitApp() {
     saveTimeout.current = setTimeout(() => {
       try {
         localStorage.setItem("powerfit-data", JSON.stringify({
-          equipment, history, onboarded, currentWorkout, profile, cycle,
+          equipment, history, onboarded, currentWorkout, profile, cycle, lang,
         }));
       } catch (e) { console.error("Save failed", e); }
     }, 300);
     return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
-  }, [equipment, history, onboarded, currentWorkout, profile, cycle]);
+  }, [equipment, history, onboarded, currentWorkout, profile, cycle, lang]);
+
+  const t = useMemo(() => UI[lang] || UI.cs, [lang]);
+  const mgL = useMemo(() => MG_LABELS[lang] || MG_LABELS.cs, [lang]);
+  const eq = useMemo(() => EQ_LABELS[lang] || EQ_LABELS.cs, [lang]);
+  const exName = useCallback((name) => lang === "en" ? (NAMES_EN[name] || name) : name, [lang]);
 
   const toast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 2500); };
 
@@ -1027,7 +1192,7 @@ export default function FitApp() {
   const deleteWorkout = (idx) => {
     setHistory(prev => prev.filter((_, i) => i !== idx));
     setDeleteConfirm(null);
-    toast("Trénink smazán");
+    toast(t.toast.deleted);
   };
 
   const swapExercise = (exIdx, newEx) => {
@@ -1038,7 +1203,7 @@ export default function FitApp() {
       const reps = newEx.isHold ? "30-60s" : cycleInfo.config.reps[exType];
       const lastPerf = getLastPerformance(newEx.name, history);
       const overloadResult = newEx.noWeight
-        ? { suggestedWeight: "", tag: "bodyweight", note: newEx.isHold ? "Drž co nejdéle s čistou formou" : "", lastWeight: null }
+        ? { suggestedWeight: "", tag: "bodyweight", note: "", lastWeight: null }
         : calcProgression(lastPerf, oldEx.muscleGroup, reps, cycleInfo.config, profile?.keyLifts, newEx.name);
 
       const replacement = {
@@ -1069,14 +1234,14 @@ export default function FitApp() {
       return { ...prev, exercises: newExercises };
     });
     setSwapTarget(null);
-    toast("Cvik vyměněn!");
+    toast(t.toast.swapped);
   };
 
   const s = styles;
 
   // ===== ONBOARDING =====
   if (!onboarded) {
-    const stepTitles = ["Vybavení", "O tobě", "Síla"];
+    const stepTitles = [t.onboard.lang, ...t.onboard.steps];
     return (
       <div style={s.appWrap}>
         <style>{globalCSS}</style>
@@ -1087,70 +1252,89 @@ export default function FitApp() {
               <span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span><br/>
               <span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span>
             </h1>
-            <p style={{ fontSize: 14, color: C.textMuted, fontWeight: 600 }}>Tvůj osobní trenér v kapse</p>
+            <p style={{ fontSize: 14, color: C.textMuted, fontWeight: 600 }}>{t.onboard.subtitle}</p>
           </div>
 
           <div style={{ display: "flex", gap: 6, marginBottom: 28 }}>
-            {[1, 2, 3].map(step => (
+            {[0, 1, 2, 3].map(step => (
               <div key={step} style={{ flex: 1, textAlign: "center" }}>
                 <div style={{
                   height: 4, borderRadius: 2, marginBottom: 6,
                   background: step <= onboardStep ? C.accent : C.border,
                   transition: "background 0.3s"
                 }} />
-                <span style={{ fontSize: 11, fontWeight: 700, color: step === onboardStep ? C.accent : C.textMuted }}>{stepTitles[step - 1]}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: step === onboardStep ? C.accent : C.textMuted }}>{stepTitles[step]}</span>
               </div>
             ))}
           </div>
 
-          {onboardStep === 1 && (
+          {onboardStep === 0 && (
             <div style={{ animation: "viewSlideIn 0.3s ease" }}>
-              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>Jaké máš vybavení?</h2>
-              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>Vyber vše, co máš k dispozici</p>
-              <div style={s.eqGrid}>
-                {EQUIPMENT_OPTIONS.map(eq => (
-                  <button key={eq.id} onClick={() => toggleEquipment(eq.id)}
-                    style={{ ...s.eqBtn, ...(equipment.includes(eq.id) ? s.eqBtnActive : {}) }}>
-                    {I(EQ_ICONS[eq.id] || IC.dumbbell, 28)}
-                    <span style={{ fontSize: 13 }}>{eq.label}</span>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 20 }}>{t.onboard.lang}</h2>
+              <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+                {[{ id: "cs", label: "Čeština" }, { id: "en", label: "English" }].map(l => (
+                  <button key={l.id} onClick={() => setLang(l.id)}
+                    style={{ ...s.genderBtn, flex: 1, fontSize: 15, padding: "16px 0", ...(lang === l.id ? s.genderBtnActive : {}) }}>
+                    {l.label}
                   </button>
                 ))}
               </div>
-              <button onClick={() => setOnboardStep(2)}
-                style={{ ...s.generateBtn, marginTop: 8 }} disabled={equipment.length === 0}>
-                <div style={s.shimmer} />Další
-              </button>
+              <button onClick={() => setOnboardStep(1)}
+                style={{ ...s.generateBtn }}><div style={s.shimmer} />{t.onboard.next}</button>
+            </div>
+          )}
+
+          {onboardStep === 1 && (
+            <div style={{ animation: "viewSlideIn 0.3s ease" }}>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>{t.onboard.eqTitle}</h2>
+              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>{t.onboard.eqSub}</p>
+              <div style={s.eqGrid}>
+                {EQUIPMENT_OPTIONS.map(eqOpt => (
+                  <button key={eqOpt.id} onClick={() => toggleEquipment(eqOpt.id)}
+                    style={{ ...s.eqBtn, ...(equipment.includes(eqOpt.id) ? s.eqBtnActive : {}) }}>
+                    {I(EQ_ICONS[eqOpt.id] || IC.dumbbell, 28)}
+                    <span style={{ fontSize: 13 }}>{eq[eqOpt.id]}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+                <button onClick={() => setOnboardStep(0)} style={{ ...s.backBtn, width: 48, height: 48 }}>{I(IC.back, 22)}</button>
+                <button onClick={() => setOnboardStep(2)}
+                  style={{ ...s.generateBtn, flex: 1 }} disabled={equipment.length === 0}>
+                  <div style={s.shimmer} />{t.onboard.next}
+                </button>
+              </div>
             </div>
           )}
 
           {onboardStep === 2 && (
             <div style={{ animation: "viewSlideIn 0.3s ease" }}>
-              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>Něco o tobě</h2>
-              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>Pomůže to lépe nastavit tréninky</p>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>{t.onboard.aboutTitle}</h2>
+              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>{t.onboard.aboutSub}</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
                 <div style={{ background: C.cardGrad, borderRadius: C.r, padding: 16, border: C.cardBorder, boxShadow: C.shadow }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6 }}>Věk</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6 }}>{t.onboard.age}</label>
                   <input type="number" value={profile.age || ""} onChange={e => setProfile(p => ({ ...p, age: e.target.value }))} style={s.profileInput} placeholder="25" />
                 </div>
                 <div style={{ background: C.cardGrad, borderRadius: C.r, padding: 16, border: C.cardBorder, boxShadow: C.shadow }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6 }}>Váha (kg)</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6 }}>{t.onboard.weight}</label>
                   <input type="number" value={profile.weight || ""} onChange={e => setProfile(p => ({ ...p, weight: e.target.value }))} style={s.profileInput} placeholder="70" />
                 </div>
               </div>
               <div style={{ background: C.cardGrad, borderRadius: C.r, padding: 16, border: C.cardBorder, boxShadow: C.shadow, marginBottom: 20 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 8 }}>Pohlaví</label>
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 8 }}>{t.onboard.gender}</label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => setProfile(p => ({ ...p, gender: "female" }))}
-                    style={{ ...s.genderBtn, ...(profile.gender === "female" ? s.genderBtnActive : {}) }}>Žena</button>
+                    style={{ ...s.genderBtn, ...(profile.gender === "female" ? s.genderBtnActive : {}) }}>{t.onboard.female}</button>
                   <button onClick={() => setProfile(p => ({ ...p, gender: "male" }))}
-                    style={{ ...s.genderBtn, ...(profile.gender === "male" ? s.genderBtnActive : {}) }}>Muž</button>
+                    style={{ ...s.genderBtn, ...(profile.gender === "male" ? s.genderBtnActive : {}) }}>{t.onboard.male}</button>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setOnboardStep(1)} style={{ ...s.backBtn, width: 48, height: 48 }}>{I(IC.back, 22)}</button>
                 <button onClick={() => setOnboardStep(3)}
                   style={{ ...s.generateBtn, flex: 1 }} disabled={!profile.age || !profile.weight}>
-                  <div style={s.shimmer} />Další
+                  <div style={s.shimmer} />{t.onboard.next}
                 </button>
               </div>
             </div>
@@ -1158,11 +1342,11 @@ export default function FitApp() {
 
           {onboardStep === 3 && (
             <div style={{ animation: "viewSlideIn 0.3s ease" }}>
-              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>Jaké váhy zvedáš?</h2>
-              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>Nemusíš vyplnit vše — upřesníš později</p>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: C.text, marginBottom: 6 }}>{t.onboard.liftTitle}</h2>
+              <p style={{ fontSize: 14, color: C.textSec, marginBottom: 20, fontWeight: 600 }}>{t.onboard.liftSub}</p>
               {KEY_LIFT_EXERCISES.map(name => (
                 <div key={name} style={{ background: C.cardGrad, borderRadius: C.r, padding: "12px 16px", border: C.cardBorder, boxShadow: C.shadow, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text, flex: 1 }}>{name}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text, flex: 1 }}>{exName(name)}</span>
                   <input type="number" value={profile.keyLifts?.[name] || ""}
                     onChange={e => setProfile(p => ({ ...p, keyLifts: { ...p.keyLifts, [name]: e.target.value ? parseFloat(e.target.value) : "" } }))}
                     style={{ ...s.profileInput, width: 80, marginTop: 0, textAlign: "center" }} placeholder="kg" />
@@ -1172,7 +1356,7 @@ export default function FitApp() {
                 <button onClick={() => setOnboardStep(2)} style={{ ...s.backBtn, width: 48, height: 48 }}>{I(IC.back, 22)}</button>
                 <button onClick={finishOnboarding}
                   style={{ ...s.generateBtn, flex: 1 }}>
-                  <div style={s.shimmer} />{I(IC.zap, 22, "#fff")} Pojďme trénovat!
+                  <div style={s.shimmer} />{I(IC.zap, 22, "#fff")} {t.onboard.letsGo}
                 </button>
               </div>
             </div>
@@ -1219,13 +1403,7 @@ export default function FitApp() {
           size: 150 + Math.random() * 300, delay: 0.2 + i * 0.6,
           color: cc[(i + 3) % cc.length], duration: 1.5 + Math.random()
         }));
-        const quotes = [
-          "Síla se rodí z důslednosti.",
-          "Každý trénink tě posouvá dál.",
-          "Dnes jsi lepší než včera.",
-          "Tvoje tělo ti děkuje.",
-          "Beast mode: aktivováno.",
-        ];
+        const quotes = t.celebration.quotes;
         const quote = quotes[Math.floor(Math.random() * quotes.length)];
         return (
           <div style={{
@@ -1302,20 +1480,20 @@ export default function FitApp() {
                 ))}
               </div>
 
-              <h2 style={{ fontFamily: "Syne, " + F, fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 6, letterSpacing: -0.5 }}>Trénink hotový!</h2>
+              <h2 style={{ fontFamily: "Syne, " + F, fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 6, letterSpacing: -0.5 }}>{t.celebration.done}</h2>
               <p style={{ fontFamily: F, fontSize: 15, color: C.textSec, marginBottom: 28, lineHeight: 1.5, fontWeight: 600 }}>{quote}</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
                 <div style={{ background: `linear-gradient(135deg, ${C.accentLight}, rgba(255,255,255,0.6))`, borderRadius: 16, padding: "14px 8px", border: "1px solid rgba(255,255,255,0.5)" }}>
                   <div style={{ fontSize: 26, fontWeight: 900, color: C.accent, fontFamily: "Syne, " + F, animation: "countUp 0.6s 0.3s ease both" }}>{celebration.exercises}</div>
-                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>cviků</div>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>{t.celebration.exercises}</div>
                 </div>
                 <div style={{ background: `linear-gradient(135deg, ${C.mint}40, rgba(255,255,255,0.6))`, borderRadius: 16, padding: "14px 8px", border: "1px solid rgba(255,255,255,0.5)" }}>
                   <div style={{ fontSize: 26, fontWeight: 900, color: C.mintDark, fontFamily: "Syne, " + F, animation: "countUp 0.6s 0.5s ease both" }}>{celebration.sets}</div>
-                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>sérií</div>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>{t.celebration.sets}</div>
                 </div>
                 <div style={{ background: `linear-gradient(135deg, ${C.sky}60, rgba(255,255,255,0.6))`, borderRadius: 16, padding: "14px 8px", border: "1px solid rgba(255,255,255,0.5)" }}>
                   <div style={{ fontSize: 26, fontWeight: 900, color: "#4E8EB8", fontFamily: "Syne, " + F, animation: "countUp 0.6s 0.7s ease both" }}>{celebration.duration || 0}</div>
-                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>minut</div>
+                  <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>{t.celebration.minutes}</div>
                 </div>
               </div>
               {celebration.prs?.length > 0 && (
@@ -1343,13 +1521,13 @@ export default function FitApp() {
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 10
                 }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 21h8m-4-4v4M5 3h14l-1.5 6.5a2 2 0 01-2 1.5h-7a2 2 0 01-2-1.5L5 3z" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 3L2 8h4M19 3l3 5h-4" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  <span style={{ fontSize: 18, fontWeight: 900, color: "#FFD700", fontFamily: "Syne, " + F, letterSpacing: -0.3 }}>Milník: {celebration.milestone}. trénink!</span>
+                  <span style={{ fontSize: 18, fontWeight: 900, color: "#FFD700", fontFamily: "Syne, " + F, letterSpacing: -0.3 }}>{t.celebration.milestone(celebration.milestone)}</span>
                 </div>
               )}
               <div style={{ fontSize: 13, color: C.textMuted, fontFamily: F, fontWeight: 600, marginBottom: 4 }}>#{celebration.workoutNum} · {celebration.split}</div>
               <button onClick={() => { setCelebration(null); navigateView("home"); }} style={{
                 ...s.generateBtn, marginTop: 20, fontSize: 16, position: "relative", overflow: "hidden"
-              }}><div style={s.shimmer} />Jdeme dál</button>
+              }}><div style={s.shimmer} />{t.celebration.next}</button>
             </div>
           </div>
         );
@@ -1369,36 +1547,36 @@ export default function FitApp() {
           <div style={s.modalOverlay} onClick={() => setSelectedExercise(null)}>
             <div style={{ ...s.modal, maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ margin: 0, fontSize: 20, color: C.text }}>{selectedExercise.name}</h3>
+                <h3 style={{ margin: 0, fontSize: 20, color: C.text }}>{exName(selectedExercise.name)}</h3>
                 <button onClick={() => setSelectedExercise(null)} style={s.closeBtn}>{I(IC.x, 18)}</button>
               </div>
               <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                <span style={{ ...s.modalBadge, background: (GROUP_COLORS[selectedExercise.muscleGroup] || {}).bg, color: (GROUP_COLORS[selectedExercise.muscleGroup] || {}).text }}>{selectedExercise.muscleGroup || ""}</span>
+                <span style={{ ...s.modalBadge, background: (GROUP_COLORS[selectedExercise.muscleGroup] || {}).bg, color: (GROUP_COLORS[selectedExercise.muscleGroup] || {}).text }}>{mgL[selectedExercise.muscleGroup] || selectedExercise.muscleGroup || ""}</span>
                 {exLib?.muscles && <span style={{ ...s.modalBadge, background: "rgba(138,180,248,0.12)", color: "#5A8AD4" }}>{exLib.muscles}</span>}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 8, fontSize: 13, color: C.textSec }}>
                 {selectedExercise.difficulty && (
-                  <span>{selectedExercise.difficulty === "beginner" ? "🟢 Začátečník" : selectedExercise.difficulty === "intermediate" ? "🟡 Střední" : "🔴 Pokročilý"}</span>
+                  <span>{selectedExercise.difficulty === "beginner" ? `🟢 ${t.modal.beginner}` : selectedExercise.difficulty === "intermediate" ? `🟡 ${t.modal.intermediate}` : `🔴 ${t.modal.advanced}`}</span>
                 )}
                 {selectedExercise.type && (
-                  <span>{selectedExercise.type === "compound" ? "• Compound" : "• Izolační"}</span>
+                  <span>• {selectedExercise.type === "compound" ? t.modal.compoundM : t.modal.isolationM}</span>
                 )}
               </div>
 
               <p style={{ color: C.textSec, fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>{selectedExercise.desc || exLib?.desc}</p>
 
               <a
-                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(selectedExercise.name + " cvik technika")}`}
+                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(lang === "en" ? (NAMES_EN[selectedExercise.name] || selectedExercise.name) + " exercise form" : selectedExercise.name + " cvik technika")}`}
                 target="_blank" rel="noopener noreferrer"
                 style={s.videoBtn}
               >
                 {I(IC.play, 18, "#fff")}
-                <span>Podívej se na video ukázku</span>
+                <span>{t.modal.video}</span>
               </a>
 
               {exLib?.howTo && (
                 <div style={s.modalSection}>
-                  <h4 style={s.modalSectionTitle}>Jak na to</h4>
+                  <h4 style={s.modalSectionTitle}>{t.modal.howTo}</h4>
                   <ol style={s.modalList}>
                     {exLib.howTo.map((step, i) => <li key={i} style={s.modalListItem}>{step}</li>)}
                   </ol>
@@ -1407,7 +1585,7 @@ export default function FitApp() {
 
               {exLib?.mistakes && (
                 <div style={s.modalSection}>
-                  <h4 style={{ ...s.modalSectionTitle, color: "#D47070" }}>Časté chyby</h4>
+                  <h4 style={{ ...s.modalSectionTitle, color: "#D47070" }}>{t.modal.mistakes}</h4>
                   <ul style={s.modalList}>
                     {exLib.mistakes.map((m, i) => <li key={i} style={{ ...s.modalListItem, color: "#C47070" }}>{m}</li>)}
                   </ul>
@@ -1416,13 +1594,13 @@ export default function FitApp() {
 
               {exHist.length > 0 && (
                 <div style={s.modalSection}>
-                  <h4 style={s.modalSectionTitle}>Historie výkonů</h4>
+                  <h4 style={s.modalSectionTitle}>{t.modal.history}</h4>
                   <div style={s.historyTable}>
                     <div style={s.historyHeader}>
-                      <span style={s.historyCell}>Datum</span>
-                      <span style={s.historyCell}>Váha</span>
-                      <span style={s.historyCell}>Ø Opak.</span>
-                      <span style={s.historyCell}>Série</span>
+                      <span style={s.historyCell}>{t.modal.date}</span>
+                      <span style={s.historyCell}>{t.modal.weightCol}</span>
+                      <span style={s.historyCell}>{t.modal.avgReps}</span>
+                      <span style={s.historyCell}>{t.modal.series}</span>
                       <span style={{ ...s.historyCell, width: 36 }}>RPE</span>
                     </div>
                     {exHist.map((h, i) => (
@@ -1450,15 +1628,15 @@ export default function FitApp() {
         const renderAlt = (alt, i) => (
           <button key={i} onClick={() => swapExercise(swapTarget, alt)} style={s.libraryItem}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{alt.name}</div>
-              {NAMES_EN[alt.name] && NAMES_EN[alt.name] !== alt.name && (
+              <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{exName(alt.name)}</div>
+              {lang === "cs" && NAMES_EN[alt.name] && NAMES_EN[alt.name] !== alt.name && (
                 <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>{NAMES_EN[alt.name]}</div>
               )}
             </div>
             <div style={{ color: C.textSec, fontSize: 12, marginTop: 4 }}>
-              {alt.type === "compound" ? "Compound" : "Izolace"}
+              {alt.type === "compound" ? t.modal.compoundM : t.modal.isolationM}
               {alt.movementPattern !== "isolation" && alt.movementPattern !== "core" ? ` · ${alt.movementPattern.replace("_", " ")}` : ""}
-              {alt.movementPattern === targetEx.movementPattern ? " · stejný pohyb" : ""}
+              {alt.movementPattern === targetEx.movementPattern ? ` · ${t.modal.sameMove}` : ""}
             </div>
           </button>
         );
@@ -1466,19 +1644,19 @@ export default function FitApp() {
           <div style={s.modalOverlay} onClick={() => setSwapTarget(null)}>
             <div style={{ ...s.modal, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>Vyměnit: {targetEx.name}</h3>
+                <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>{t.modal.swap}: {exName(targetEx.name)}</h3>
                 <button onClick={() => setSwapTarget(null)} style={s.closeBtn}>{I(IC.x, 18)}</button>
               </div>
-              {mine.length === 0 && other.length === 0 && <p style={{ color: C.textSec }}>Žádné alternativy.</p>}
+              {mine.length === 0 && other.length === 0 && <p style={{ color: C.textSec }}>{t.modal.noAlts}</p>}
               {mine.length > 0 && (
                 <>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Tvé vybavení</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>{t.modal.yourEquip}</div>
                   {mine.map(renderAlt)}
                 </>
               )}
               {other.length > 0 && (
                 <>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginTop: mine.length > 0 ? 16 : 0, marginBottom: 8 }}>Další možnosti</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginTop: mine.length > 0 ? 16 : 0, marginBottom: 8 }}>{t.modal.otherOptions}</div>
                   {other.map(renderAlt)}
                 </>
               )}
@@ -1496,12 +1674,12 @@ export default function FitApp() {
               <div style={{ display: "flex", gap: 10, alignItems: "center", paddingBottom: 4 }}>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{totalWorkouts}</div>
-                  <div style={{ fontSize: 8, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>celkem</div>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>{t.home.total}</div>
                 </div>
                 <div style={{ width: 1, height: 20, background: C.border }} />
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{thisWeek}</div>
-                  <div style={{ fontSize: 8, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>týden</div>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: C.textMuted, textTransform: "uppercase" }}>{t.home.week}</div>
                 </div>
               </div>
             </div>
@@ -1512,13 +1690,13 @@ export default function FitApp() {
               <button onClick={() => { if (!workoutStartTime) setWorkoutStartTime(Date.now()); navigateView("workout"); }} style={s.generateBtn}>
                 <div style={s.shimmer} />
                 {I(IC.zap, 22, "#fff")}
-                <span>Pokračovat v tréninku</span>
+                <span>{t.home.continueWorkout}</span>
               </button>
             ) : (
               <button onClick={genWorkout} style={s.generateBtn}>
                 <div style={s.shimmer} />
                 {I(IC.zap, 22, "#fff")}
-                <span>Vygeneruj trénink</span>
+                <span>{t.home.generate}</span>
               </button>
             )}
           </div>
@@ -1583,7 +1761,7 @@ export default function FitApp() {
                     {streak > 8 && <span style={{ fontSize: 11, color: C.accent, fontWeight: 700, lineHeight: "8px" }}>+{streak - 8}</span>}
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                    Trénuješ {streak}. týden v řadě
+                    {t.home.streak(streak)}
                   </div>
                 </div>
               )}
@@ -1591,7 +1769,7 @@ export default function FitApp() {
               {/* Monthly training summary */}
               {history.length > 0 && (() => {
                 const now = new Date();
-                const monthNamesFull = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
+                const monthNamesFull = t.home.months;
                 const thisMonth = now.getMonth();
                 const thisYear = now.getFullYear();
                 const thisMonthCount = history.filter(w => {
@@ -1614,10 +1792,10 @@ export default function FitApp() {
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{monthNamesFull[thisMonth]}</div>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{thisMonthCount}<span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}> {thisMonthCount === 1 ? "trénink" : thisMonthCount >= 2 && thisMonthCount <= 4 ? "tréninky" : "tréninků"}</span></div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{thisMonthCount}<span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}> {t.home.workouts(thisMonthCount)}</span></div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
-                      {["Po","Út","St","Čt","Pá","So","Ne"].map(d => (
+                      {t.home.days.map(d => (
                         <div key={d} style={{ fontSize: 9, fontWeight: 700, color: C.textMuted, textAlign: "center", paddingBottom: 2 }}>{d}</div>
                       ))}
                       {(() => {
@@ -1647,12 +1825,7 @@ export default function FitApp() {
             {/* Cycle indicator with progress ring */}
             {cycle && (() => {
               const phaseColors = { Akumulace: C.accent, Zesilování: "#FFBE98", Peak: "#D47070", Deload: C.mintDark };
-              const phaseDesc = {
-                Akumulace: "Budování objemu – střední váhy, více opakování. Základ pro sílu.",
-                Zesilování: "Zvyšování intenzity – těžší váhy, méně opakování.",
-                Peak: "Maximální výkon – nejtěžší váhy, nejméně opakování, +1 série.",
-                Deload: "Regenerace – lehké váhy, vysoké opakování. Tělo se zotavuje."
-              };
+              const phaseDesc = t.home.phaseDesc;
               const currentColor = phaseColors[cycleInfo.label] || C.accent;
               const pct = (cycleInfo.week / 4) * 100;
               const circumference = 2 * Math.PI * 40;
@@ -1673,9 +1846,9 @@ export default function FitApp() {
                       </div>
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Mezocyklus</div>
+                      <div style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{t.home.mesocycle}</div>
                       <div style={{ color: C.text, fontSize: 17, fontWeight: 900, marginTop: 4 }}>
-                        Týden {cycleInfo.week}/4 · {cycleInfo.label}
+                        {t.home.weekOf} {cycleInfo.week}/4 · {t.home.phases[cycleInfo.label] || cycleInfo.label}
                       </div>
                       <div style={{ color: C.textSec, fontSize: 12, fontWeight: 600, marginTop: 4, lineHeight: 1.4 }}>
                         {phaseDesc[cycleInfo.label]}
@@ -1692,7 +1865,7 @@ export default function FitApp() {
           <div style={{ ...s.accordionWrap, marginTop: 10 }}>
             <button onClick={() => setOpenSections(p => ({ ...p, recovery: !p.recovery }))}
               style={s.accordionBtn}>
-              <span style={s.sectionTitle}>Regenerace svalů</span>
+              <span style={s.sectionTitle}>{t.home.recovery}</span>
               <div style={{ ...s.accordionChev, transform: openSections.recovery ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.25s ease" }}>
                 {I(IC.chevDown, 14, C.textMuted)}
               </div>
@@ -1705,7 +1878,7 @@ export default function FitApp() {
                     const color = r.pct >= 80 ? C.mintDark : r.pct >= 50 ? C.accent : "#D47070";
                     return (
                       <div key={mg} style={s.recoveryItem}>
-                        <div style={s.recoveryLabel}>{mg}</div>
+                        <div style={s.recoveryLabel}>{mgL[mg] || mg}</div>
                         <div style={s.recoveryBarBg}>
                           <div style={{ ...s.recoveryBarFill, width: `${r.pct}%`, background: color }} />
                         </div>
@@ -1850,7 +2023,7 @@ export default function FitApp() {
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
             <button onClick={() => navigateView("home")} style={s.backBtn}>{I(IC.back, 22)}</button>
             <div>
-              <h2 style={{ margin: 0, color: C.text, fontSize: 22 }}>Dnešní trénink</h2>
+              <h2 style={{ margin: 0, color: C.text, fontSize: 22 }}>{t.workout.title}</h2>
               <div style={{ color: C.accent, fontSize: 14, fontWeight: 600, marginTop: 2 }}>
                 {currentWorkout.splitLabel}
                 {currentWorkout.weekLabel && <span style={{ color: C.textSec, fontWeight: 400 }}> · {currentWorkout.weekLabel}</span>}
@@ -1862,7 +2035,7 @@ export default function FitApp() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, padding: "10px 16px", borderRadius: C.r, background: C.cardGrad, border: C.cardBorder, boxShadow: C.shadow }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {I(IC.clock, 18, restTimer.enabled ? C.accent : C.textMuted)}
-              <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Odpočinek</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t.workout.rest}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {restTimer.enabled && (
@@ -1894,13 +2067,13 @@ export default function FitApp() {
               background: `linear-gradient(135deg, ${C.accent}15, ${C.rose}15)`,
               border: `2px solid ${C.accent}40`, animation: "timerPulse 2s ease infinite"
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>Odpočinek</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>{t.workout.rest}</div>
               <div style={{ fontFamily: "Syne, " + F, fontSize: 42, fontWeight: 900, color: C.accent, marginTop: 4 }}>
                 {Math.floor(restTimer.remaining / 60)}:{(restTimer.remaining % 60).toString().padStart(2, "0")}
               </div>
               <button onClick={() => { clearInterval(restTimerRef.current); setRestTimer(prev => ({ ...prev, active: false, remaining: 0 })); }}
                 style={{ marginTop: 8, padding: "6px 20px", borderRadius: C.rPill, border: "none", background: C.bg, color: C.textSec, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
-                Přeskočit
+                {t.workout.skip}
               </button>
             </div>
           )}
@@ -1912,7 +2085,7 @@ export default function FitApp() {
             }} />
           </div>
           <div style={{ color: C.textSec, fontSize: 13, marginBottom: 20, textAlign: "center" }}>
-            {currentWorkout.exercises.filter(e => e.logged).length} / {currentWorkout.exercises.length} cviků hotovo
+            {currentWorkout.exercises.filter(e => e.logged).length} / {currentWorkout.exercises.length} {t.workout.done}
           </div>
 
           {(() => {
@@ -1922,41 +2095,41 @@ export default function FitApp() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <button onClick={() => setSelectedExercise(ex)} style={s.exNameBtn}>
-                        {ex.name} <span style={{ opacity: 0.35, marginLeft: 4, display: "inline-flex", verticalAlign: "middle" }}>{I(IC.info, 15)}</span>
+                        {exName(ex.name)} <span style={{ opacity: 0.35, marginLeft: 4, display: "inline-flex", verticalAlign: "middle" }}>{I(IC.info, 15)}</span>
                       </button>
                       <button onClick={() => setSwapTarget(exIdx)} style={s.swapBtn} title="Vyměnit cvik">{I(IC.swap, 16)}</button>
                     </div>
-                    {NAMES_EN[ex.name] && NAMES_EN[ex.name] !== ex.name && (
+                    {lang === "cs" && NAMES_EN[ex.name] && NAMES_EN[ex.name] !== ex.name && (
                       <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 1 }}>{NAMES_EN[ex.name]}</div>
                     )}
                     <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
-                      <span style={{ ...s.tagBadge, background: (GROUP_COLORS[ex.muscleGroup] || {}).bg, color: (GROUP_COLORS[ex.muscleGroup] || {}).text }}>{ex.muscleGroup}</span>
+                      <span style={{ ...s.tagBadge, background: (GROUP_COLORS[ex.muscleGroup] || {}).bg, color: (GROUP_COLORS[ex.muscleGroup] || {}).text }}>{mgL[ex.muscleGroup] || ex.muscleGroup}</span>
                       <span style={{ ...s.tagBadge, background: C.accentLight, color: C.accent }}>
                         {ex.sets}×{ex.reps}
                       </span>
                       {ex.progressTag === "up" && (
-                        <span style={{ ...s.tagBadge, background: "rgba(108,191,108,0.12)", color: "#4A9A4A" }}>↑ Zvýšeno</span>
+                        <span style={{ ...s.tagBadge, background: "rgba(108,191,108,0.12)", color: "#4A9A4A" }}>{t.workout.tags.up}</span>
                       )}
                       {ex.progressTag === "same" && ex.lastWeight && (
-                        <span style={{ ...s.tagBadge, background: "rgba(255,190,152,0.15)", color: "#C47040" }}>→ Stejná váha</span>
+                        <span style={{ ...s.tagBadge, background: "rgba(255,190,152,0.15)", color: "#C47040" }}>{t.workout.tags.same}</span>
                       )}
                       {ex.progressTag === "new" && (
-                        <span style={{ ...s.tagBadge, background: "rgba(138,180,248,0.12)", color: "#5A8AD4" }}>✦ Nový</span>
+                        <span style={{ ...s.tagBadge, background: "rgba(138,180,248,0.12)", color: "#5A8AD4" }}>{t.workout.tags.new}</span>
                       )}
                       {ex.progressTag === "deload" && (
-                        <span style={{ ...s.tagBadge, background: "rgba(138,180,248,0.12)", color: "#5A8AD4" }}>🧘 Deload</span>
+                        <span style={{ ...s.tagBadge, background: "rgba(138,180,248,0.12)", color: "#5A8AD4" }}>{t.workout.tags.deload}</span>
                       )}
                       {ex.progressTag === "comeback" && (
-                        <span style={{ ...s.tagBadge, background: "rgba(255,190,152,0.15)", color: "#C47040" }}>↩ Návrat</span>
+                        <span style={{ ...s.tagBadge, background: "rgba(255,190,152,0.15)", color: "#C47040" }}>{t.workout.tags.comeback}</span>
                       )}
                       {ex.progressTag === "profile" && (
-                        <span style={{ ...s.tagBadge, background: "rgba(138,180,248,0.12)", color: "#5A8AD4" }}>Profil</span>
+                        <span style={{ ...s.tagBadge, background: "rgba(138,180,248,0.12)", color: "#5A8AD4" }}>{t.workout.tags.profile}</span>
                       )}
                       {ex.noWeight && (
-                        <span style={{ ...s.tagBadge, background: C.bg, color: C.textSec }}>Vlastní váha</span>
+                        <span style={{ ...s.tagBadge, background: C.bg, color: C.textSec }}>{t.workout.tags.bodyweight}</span>
                       )}
                       {ex.isHold && (
-                        <span style={{ ...s.tagBadge, background: C.sky, color: "#4E8EB8" }}>Výdrž</span>
+                        <span style={{ ...s.tagBadge, background: C.sky, color: "#4E8EB8" }}>{t.workout.tags.hold}</span>
                       )}
                     </div>
                     {ex.progressNote && (
@@ -1969,9 +2142,9 @@ export default function FitApp() {
                 </div>
                 <div style={s.setsContainer}>
                   <div style={{ ...s.setsHeader, gridTemplateColumns: ex.noWeight ? "36px 1fr 48px" : "36px 1fr 1fr 48px" }}>
-                    <span style={s.setsHeaderCell}>Set</span>
-                    {!ex.noWeight && <span style={s.setsHeaderCell}>Váha (kg)</span>}
-                    <span style={s.setsHeaderCell}>{ex.isHold ? "Čas (s)" : "Opak."}</span>
+                    <span style={s.setsHeaderCell}>{t.workout.set}</span>
+                    {!ex.noWeight && <span style={s.setsHeaderCell}>{t.workout.weightKg}</span>}
+                    <span style={s.setsHeaderCell}>{ex.isHold ? t.workout.timeS : t.workout.reps}</span>
                     <span style={{ ...s.setsHeaderCell, width: 48 }}></span>
                   </div>
                   {ex.setDetails.map((set, si) => (
@@ -1994,9 +2167,9 @@ export default function FitApp() {
                 {ex.setDetails.every(s => s.done) && (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "10px 18px 6px" }}>
                     {[
-                      { val: "easy", color: C.mintDark, bg: C.mint, label: "Easy" },
-                      { val: "moderate", color: C.accent, bg: C.accentLight, label: "Akorát" },
-                      { val: "hard", color: "#C45A6A", bg: C.rose, label: "Dřina" },
+                      { val: "easy", color: C.mintDark, bg: C.mint, label: t.workout.easy },
+                      { val: "moderate", color: C.accent, bg: C.accentLight, label: t.workout.moderate },
+                      { val: "hard", color: "#C45A6A", bg: C.rose, label: t.workout.hard },
                     ].map(r => {
                       const active = ex.rpe === r.val;
                       return (
@@ -2043,8 +2216,8 @@ export default function FitApp() {
                 return (
                   <div key={`ss_${gi}`} style={s.supersetWrap}>
                     <div style={s.supersetHeader}>
-                      <span style={s.supersetBadge}>SUPERSET</span>
-                      <span style={{ color: C.textSec, fontSize: 12 }}>Střídej série: 1A → 1B → 2A → 2B …</span>
+                      <span style={s.supersetBadge}>{t.workout.superset}</span>
+                      <span style={{ color: C.textSec, fontSize: 12 }}>{t.workout.supersetHint}</span>
                     </div>
                     <div style={{ ...s.supersetCards, display: "flex", flexDirection: "column", gap: 20 }}>
                       <div>
@@ -2065,7 +2238,7 @@ export default function FitApp() {
 
           <button onClick={finishWorkout} style={{ ...s.generateBtn, marginTop: 20 }}>
             {I(IC.flag, 22, "#fff")}
-            <span>Dokončit trénink</span>
+            <span>{t.workout.finish}</span>
           </button>
         </div>
       )}
@@ -2073,25 +2246,24 @@ export default function FitApp() {
       {/* ===== LIBRARY VIEW ===== */}
       {view === "library" && (
         <div style={{ ...s.page, animation: `${viewTransition.direction === "forward" ? "viewSlideIn" : "viewSlideInReverse"} 0.3s ease` }}>
-          <h2 style={{ color: C.text, fontSize: 22, marginBottom: 16 }}>Knihovna cviků</h2>
+          <h2 style={{ color: C.text, fontSize: 22, marginBottom: 16 }}>{t.library.title}</h2>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
             {["Vše", ...MUSCLE_GROUPS].map(f => (
               <button key={f} onClick={() => setLibraryFilter(f)}
                 style={{ ...s.filterBtn, ...(libraryFilter === f ? s.filterBtnActive : {}) }}>
-                {f}
+                {f === "Vše" ? t.library.all : mgL[f] || f}
               </button>
             ))}
           </div>
-          {(libraryFilter === "Vše" ? MUSCLE_GROUPS : [libraryFilter]).map(mg => (
-            <div key={mg}>
-              <h3 style={{ color: (GROUP_COLORS[mg] || {}).text || C.text, fontSize: 16, margin: "16px 0 10px", fontWeight: 800 }}>{mg}</h3>
-              {(EXERCISE_LIBRARY[mg] || []).map((ex, i) => (
-                <button key={i} onClick={() => setSelectedExercise({ ...ex, muscleGroup: mg })} style={s.libraryItem}>
-                  <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{ex.name}</div>
+          {(libraryFilter === "Vše" ? MUSCLE_GROUPS : [libraryFilter]).map(grp => (
+            <div key={grp}>
+              <h3 style={{ color: (GROUP_COLORS[grp] || {}).text || C.text, fontSize: 16, margin: "16px 0 10px", fontWeight: 800 }}>{mgL[grp] || grp}</h3>
+              {(EXERCISE_LIBRARY[grp] || []).map((ex, i) => (
+                <button key={i} onClick={() => setSelectedExercise({ ...ex, muscleGroup: grp })} style={s.libraryItem}>
+                  <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{exName(ex.name)}</div>
                   <div style={{ color: C.textSec, fontSize: 13, marginTop: 4 }}>
-                    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, marginRight: 6, background: ex.difficulty === "beginner" ? C.mint : ex.difficulty === "intermediate" ? C.peach : C.rose, color: ex.difficulty === "beginner" ? C.mintDark : ex.difficulty === "intermediate" ? "#B87A4E" : "#C45A6A" }}>#{ex.difficulty === "beginner" ? "začátečník" : ex.difficulty === "intermediate" ? "středně" : "pokročilý"}</span>
-                    {ex.type === "compound" ? "Compound" : "Izolace"}
-                    {" · "}{ex.desc.substring(0, 50)}...
+                    <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, marginRight: 6, background: ex.difficulty === "beginner" ? C.mint : ex.difficulty === "intermediate" ? C.peach : C.rose, color: ex.difficulty === "beginner" ? C.mintDark : ex.difficulty === "intermediate" ? "#B87A4E" : "#C45A6A" }}>#{t.library[ex.difficulty]}</span>
+                    {ex.type === "compound" ? t.library.compound : t.library.isolation}
                   </div>
                 </button>
               ))}
@@ -2103,71 +2275,79 @@ export default function FitApp() {
       {/* ===== SETTINGS VIEW ===== */}
       {view === "settings" && (
         <div style={{ ...s.page, animation: `${viewTransition.direction === "forward" ? "viewSlideIn" : "viewSlideInReverse"} 0.3s ease` }}>
-          <h2 style={{ color: C.text, fontSize: 22, marginBottom: 16 }}>Nastavení</h2>
+          <h2 style={{ color: C.text, fontSize: 22, marginBottom: 16 }}>{t.settings.title}</h2>
 
-          <h3 style={s.settingsHeading}>Profil</h3>
+          <h3 style={s.settingsHeading}>{t.settings.language}</h3>
+          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+            {[{ id: "cs", label: "Čeština" }, { id: "en", label: "English" }].map(l => (
+              <button key={l.id} onClick={() => setLang(l.id)}
+                style={{ ...s.genderBtn, flex: 1, ...(lang === l.id ? s.genderBtnActive : {}) }}>{l.label}</button>
+            ))}
+          </div>
+
+          <h3 style={s.settingsHeading}>{t.settings.profile}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <label style={s.inputLabel}>Věk
+            <label style={s.inputLabel}>{t.settings.age}
               <input type="number" value={profile.age || ""} onChange={e => setProfile(p => ({ ...p, age: e.target.value }))} style={s.profileInput} placeholder="25" />
             </label>
-            <label style={s.inputLabel}>Váha (kg)
+            <label style={s.inputLabel}>{t.settings.weight}
               <input type="number" value={profile.weight || ""} onChange={e => setProfile(p => ({ ...p, weight: e.target.value }))} style={s.profileInput} placeholder="70" />
             </label>
           </div>
-          <label style={s.inputLabel}>Pohlaví
+          <label style={s.inputLabel}>{t.settings.gender}
             <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
               <button onClick={() => setProfile(p => ({ ...p, gender: "female" }))}
-                style={{ ...s.genderBtn, ...(profile.gender === "female" ? s.genderBtnActive : {}) }}>Žena</button>
+                style={{ ...s.genderBtn, ...(profile.gender === "female" ? s.genderBtnActive : {}) }}>{t.settings.female}</button>
               <button onClick={() => setProfile(p => ({ ...p, gender: "male" }))}
-                style={{ ...s.genderBtn, ...(profile.gender === "male" ? s.genderBtnActive : {}) }}>Muž</button>
+                style={{ ...s.genderBtn, ...(profile.gender === "male" ? s.genderBtnActive : {}) }}>{t.settings.male}</button>
             </div>
           </label>
 
-          <h3 style={{ ...s.settingsHeading, marginTop: 28 }}>Klíčové cviky (kg)</h3>
+          <h3 style={{ ...s.settingsHeading, marginTop: 28 }}>{t.settings.keyLifts}</h3>
           {KEY_LIFT_EXERCISES.map(name => (
-            <label key={name} style={s.inputLabel}>{name}
+            <label key={name} style={s.inputLabel}>{exName(name)}
               <input type="number" value={profile.keyLifts?.[name] || ""}
                 onChange={e => setProfile(p => ({ ...p, keyLifts: { ...p.keyLifts, [name]: e.target.value ? parseFloat(e.target.value) : "" } }))}
                 style={s.profileInput} placeholder="kg" />
             </label>
           ))}
 
-          <h3 style={{ ...s.settingsHeading, marginTop: 28 }}>Mezocyklus</h3>
+          <h3 style={{ ...s.settingsHeading, marginTop: 28 }}>{t.settings.mesocycle}</h3>
           {cycle ? (
             <div style={{ marginBottom: 12 }}>
-              <div style={{ color: C.textSec, fontSize: 14 }}>Týden {cycleInfo.week}/4 · {cycleInfo.label}</div>
+              <div style={{ color: C.textSec, fontSize: 14 }}>{t.home.weekOf} {cycleInfo.week}/4 · {t.home.phases[cycleInfo.label] || cycleInfo.label}</div>
               <button onClick={() => setCycle({ startDate: new Date().toISOString() })}
                 style={{ ...s.secondaryBtn, marginTop: 8, fontSize: 13, padding: "10px 16px" }}>
-                Restartovat cyklus
+                {t.settings.restartCycle}
               </button>
             </div>
           ) : (
-            <div style={{ color: C.textSec, fontSize: 14 }}>Cyklus se spustí s prvním tréninkem.</div>
+            <div style={{ color: C.textSec, fontSize: 14 }}>{t.settings.cycleInfo}</div>
           )}
 
-          <h3 style={{ ...s.settingsHeading, marginTop: 28 }}>Vybavení</h3>
+          <h3 style={{ ...s.settingsHeading, marginTop: 28 }}>{t.settings.equipment}</h3>
           <div style={s.eqGrid}>
-            {EQUIPMENT_OPTIONS.map(eq => (
-              <button key={eq.id} onClick={() => toggleEquipment(eq.id)}
-                style={{ ...s.eqBtn, ...(equipment.includes(eq.id) ? s.eqBtnActive : {}) }}>
-                {I(EQ_ICONS[eq.id] || IC.dumbbell, 28)}
-                <span style={{ fontSize: 13 }}>{eq.label}</span>
+            {EQUIPMENT_OPTIONS.map(eqOpt => (
+              <button key={eqOpt.id} onClick={() => toggleEquipment(eqOpt.id)}
+                style={{ ...s.eqBtn, ...(equipment.includes(eqOpt.id) ? s.eqBtnActive : {}) }}>
+                {I(EQ_ICONS[eqOpt.id] || IC.dumbbell, 28)}
+                <span style={{ fontSize: 13 }}>{eq[eqOpt.id]}</span>
               </button>
             ))}
           </div>
 
           <button onClick={() => {
-            if (confirm("Opravdu smazat všechna data?")) {
+            if (confirm(t.settings.deleteConfirm)) {
               setHistory([]);
               setCurrentWorkout(null);
               setOnboarded(false);
               setProfile({ age: "", weight: "", gender: "female", keyLifts: {} });
               setCycle(null);
               try { localStorage.removeItem("powerfit-data"); } catch {}
-              toast("Data smazána");
+              toast(t.toast.dataDeleted);
             }
           }} style={{ ...s.secondaryBtn, marginTop: 32, borderColor: "#D47070", color: "#D47070" }}>
-            <span style={{ display: "inline-flex", verticalAlign: "middle", marginRight: 8 }}>{I(IC.trash, 16, "#D47070")}</span>Smazat všechna data
+            <span style={{ display: "inline-flex", verticalAlign: "middle", marginRight: 8 }}>{I(IC.trash, 16, "#D47070")}</span>{t.settings.deleteAll}
           </button>
         </div>
       )}
@@ -2175,10 +2355,10 @@ export default function FitApp() {
       {/* ===== NAVIGATION ===== */}
       <nav style={s.nav}>
         {[
-          { id: "home", icon: IC.home, label: "Domů" },
-          { id: "workout", icon: IC.dumbbell, label: "Trénink" },
-          { id: "library", icon: IC.book, label: "Cviky" },
-          { id: "settings", icon: IC.gear, label: "Nastavení" },
+          { id: "home", icon: IC.home, label: t.nav.home },
+          { id: "workout", icon: IC.dumbbell, label: t.nav.workout },
+          { id: "library", icon: IC.book, label: t.nav.library },
+          { id: "settings", icon: IC.gear, label: t.nav.settings },
         ].map(tab => {
           const isActive = view === tab.id;
           return (
