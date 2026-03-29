@@ -300,6 +300,35 @@ const EXERCISE_LIBRARY = {
   ],
 };
 
+const NAMES_EN = {
+  "Bench press": "Bench Press", "Bench press s jednoručkami": "Dumbbell Bench Press",
+  "Kliky": "Push-ups", "Rozpažky s jednoručkami": "Dumbbell Flyes",
+  "Cable crossover": "Cable Crossover", "Šikmý bench press": "Incline Dumbbell Press",
+  "Chest press na stroji": "Machine Chest Press", "Diamantové kliky": "Diamond Push-ups",
+  "Shrágy": "Shrugs", "Přítahy na kladce": "Cable Lat Pulldown",
+  "Bent-over row": "Bent-over Row", "Jednoruční přítah": "Single-arm Dumbbell Row",
+  "Shyby": "Pull-ups", "Lat pulldown": "Lat Pulldown",
+  "Seated row": "Seated Cable Row", "T-bar row": "T-bar Row",
+  "Tlaky nad hlavu": "Overhead Press", "Tlaky s jednoručkami": "Dumbbell Shoulder Press",
+  "Upažování": "Lateral Raises", "Face pulls": "Face Pulls",
+  "Arnold press": "Arnold Press", "Předpažování": "Front Raises",
+  "Bicepsový curl": "Bicep Curl", "Hammer curl": "Hammer Curl",
+  "Concentration curl": "Concentration Curl", "Cable curl": "Cable Curl",
+  "Chin-upy": "Chin-ups", "Tricepsové kliky na lavičce": "Bench Dips",
+  "Francouzský tlak": "Skull Crushers", "Triceps pushdown": "Triceps Pushdown",
+  "Kickback": "Triceps Kickback", "Úzké kliky": "Close-grip Push-ups",
+  "Overhead triceps extension": "Overhead Triceps Extension",
+  "Dřep (squat)": "Barbell Squat", "Goblet squat": "Goblet Squat",
+  "Mrtvý tah": "Deadlift", "Rumunský mrtvý tah": "Romanian Deadlift",
+  "Výpady": "Lunges", "Leg press": "Leg Press", "Leg curl": "Leg Curl",
+  "Leg extension": "Leg Extension", "Bulharské dřepy": "Bulgarian Split Squat",
+  "Plank": "Plank", "Bicycle crunches": "Bicycle Crunches",
+  "Russian twists": "Russian Twists", "Hanging leg raises": "Hanging Leg Raises",
+  "Cable woodchops": "Cable Woodchops", "Dead bug": "Dead Bug", "Ab rollout": "Ab Rollout",
+  "Hip thrust": "Hip Thrust", "Glute bridge": "Glute Bridge",
+  "Sumo dřep": "Sumo Squat", "Kickback na kladce": "Cable Glute Kickback", "Step-up": "Step-up",
+};
+
 const SPLIT_PATTERNS = [
   { label: "Push (Prsa + Ramena + Triceps)", groups: ["Prsa", "Ramena", "Triceps"] },
   { label: "Pull (Záda + Biceps)", groups: ["Záda", "Biceps"] },
@@ -589,14 +618,13 @@ function getExerciseAlternatives(exercise, equipment, currentExerciseNames) {
   const eqSet = new Set(equipment);
   const group = exercise.muscleGroup;
   const pattern = exercise.movementPattern;
-  const available = (EXERCISE_LIBRARY[group] || []).filter(ex =>
-    ex.equipment.some(e => eqSet.has(e)) &&
-    ex.name !== exercise.name &&
-    !currentExerciseNames.includes(ex.name)
+  const all = (EXERCISE_LIBRARY[group] || []).filter(ex =>
+    ex.name !== exercise.name && !currentExerciseNames.includes(ex.name)
   );
-  const samePattern = available.filter(ex => ex.movementPattern === pattern);
-  const diffPattern = available.filter(ex => ex.movementPattern !== pattern);
-  return [...samePattern, ...diffPattern];
+  const sort = (list) => [...list.filter(ex => ex.movementPattern === pattern), ...list.filter(ex => ex.movementPattern !== pattern)];
+  const mine = sort(all.filter(ex => ex.equipment.some(e => eqSet.has(e))));
+  const other = sort(all.filter(ex => !ex.equipment.some(e => eqSet.has(e))));
+  return { mine, other };
 }
 
 function selectExercises(group, eqSet, history, maxCount, globalUsedPatterns = {}) {
@@ -942,7 +970,13 @@ export default function FitApp() {
     setCurrentWorkout(prev => {
       const n = { ...prev, exercises: prev.exercises.map((ex, i) => {
         if (i !== exIdx) return ex;
-        const newSets = ex.setDetails.map((s, si) => si === setIdx ? { ...s, [field]: value } : s);
+        const newSets = ex.setDetails.map((s, si) => {
+          if (si === setIdx) return { ...s, [field]: value };
+          if (setIdx === 0 && si > 0 && !s.done && !s[field]) {
+            return { ...s, [field]: value };
+          }
+          return s;
+        });
         return { ...ex, setDetails: newSets };
       })};
       return n;
@@ -1412,7 +1446,22 @@ export default function FitApp() {
       {swapTarget !== null && currentWorkout && (() => {
         const targetEx = currentWorkout.exercises[swapTarget];
         const currentNames = currentWorkout.exercises.map(e => e.name);
-        const alternatives = getExerciseAlternatives(targetEx, equipment, currentNames);
+        const { mine, other } = getExerciseAlternatives(targetEx, equipment, currentNames);
+        const renderAlt = (alt, i) => (
+          <button key={i} onClick={() => swapExercise(swapTarget, alt)} style={s.libraryItem}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{alt.name}</div>
+              {NAMES_EN[alt.name] && NAMES_EN[alt.name] !== alt.name && (
+                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>{NAMES_EN[alt.name]}</div>
+              )}
+            </div>
+            <div style={{ color: C.textSec, fontSize: 12, marginTop: 4 }}>
+              {alt.type === "compound" ? "Compound" : "Izolace"}
+              {alt.movementPattern !== "isolation" && alt.movementPattern !== "core" ? ` · ${alt.movementPattern.replace("_", " ")}` : ""}
+              {alt.movementPattern === targetEx.movementPattern ? " · stejný pohyb" : ""}
+            </div>
+          </button>
+        );
         return (
           <div style={s.modalOverlay} onClick={() => setSwapTarget(null)}>
             <div style={{ ...s.modal, maxHeight: "80vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
@@ -1420,17 +1469,19 @@ export default function FitApp() {
                 <h3 style={{ margin: 0, fontSize: 18, color: C.text }}>Vyměnit: {targetEx.name}</h3>
                 <button onClick={() => setSwapTarget(null)} style={s.closeBtn}>{I(IC.x, 18)}</button>
               </div>
-              {alternatives.length === 0 && <p style={{ color: C.textSec }}>Žádné alternativy pro tvé vybavení.</p>}
-              {alternatives.map((alt, i) => (
-                <button key={i} onClick={() => swapExercise(swapTarget, alt)} style={s.libraryItem}>
-                  <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{alt.name}</div>
-                  <div style={{ color: C.textSec, fontSize: 12, marginTop: 4 }}>
-                    {alt.type === "compound" ? "Compound" : "Izolace"}
-                    {alt.movementPattern !== "isolation" && alt.movementPattern !== "core" ? ` · ${alt.movementPattern.replace("_", " ")}` : ""}
-                    {alt.movementPattern === targetEx.movementPattern ? " · stejný pohyb" : ""}
-                  </div>
-                </button>
-              ))}
+              {mine.length === 0 && other.length === 0 && <p style={{ color: C.textSec }}>Žádné alternativy.</p>}
+              {mine.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Tvé vybavení</div>
+                  {mine.map(renderAlt)}
+                </>
+              )}
+              {other.length > 0 && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginTop: mine.length > 0 ? 16 : 0, marginBottom: 8 }}>Další možnosti</div>
+                  {other.map(renderAlt)}
+                </>
+              )}
             </div>
           </div>
         );
@@ -1537,31 +1588,58 @@ export default function FitApp() {
                 </div>
               )}
 
-              {/* Activity calendar */}
-              {history.length > 0 && (
-                <div style={{
-                  marginTop: 12, padding: "16px", borderRadius: C.r, border: C.cardBorder,
-                  background: C.cardGrad, boxShadow: C.shadow
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 10 }}>Aktivita</div>
-                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${calendarWeeks}, 1fr)`, gap: 3 }}>
-                    {calendarData.map((cell, i) => (
-                      <div key={i} style={{
-                        aspectRatio: "1", borderRadius: 3, minWidth: 0,
-                        background: cell.count === 0 ? "rgba(0,0,0,0.04)" : cell.count === 1 ? C.mint : cell.count === 2 ? C.accent : "#FF7B9B",
-                        transition: "background 0.2s"
-                      }} title={`${cell.dayStr}: ${cell.count}x`} />
-                    ))}
+              {/* Monthly training summary */}
+              {history.length > 0 && (() => {
+                const now = new Date();
+                const monthNamesFull = ["Leden", "Únor", "Březen", "Duben", "Květen", "Červen", "Červenec", "Srpen", "Září", "Říjen", "Listopad", "Prosinec"];
+                const thisMonth = now.getMonth();
+                const thisYear = now.getFullYear();
+                const thisMonthCount = history.filter(w => {
+                  const d = new Date(w.date);
+                  return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+                }).length;
+                const daysInMonth = new Date(thisYear, thisMonth + 1, 0).getDate();
+                const today = now.getDate();
+                const dots = [];
+                for (let d = 1; d <= daysInMonth; d++) {
+                  const ds = `${thisYear}-${String(thisMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  const count = history.filter(w => w.date?.slice(0, 10) === ds).length;
+                  dots.push({ day: d, count, isToday: d === today, isPast: d <= today });
+                }
+
+                return (
+                  <div style={{
+                    marginTop: 12, padding: 16, borderRadius: C.r, border: C.cardBorder,
+                    background: C.cardGrad, boxShadow: C.shadow
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{monthNamesFull[thisMonth]}</div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{thisMonthCount}<span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}> {thisMonthCount === 1 ? "trénink" : thisMonthCount >= 2 && thisMonthCount <= 4 ? "tréninky" : "tréninků"}</span></div>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
+                      {["Po","Út","St","Čt","Pá","So","Ne"].map(d => (
+                        <div key={d} style={{ fontSize: 9, fontWeight: 700, color: C.textMuted, textAlign: "center", paddingBottom: 2 }}>{d}</div>
+                      ))}
+                      {(() => {
+                        const firstDay = new Date(thisYear, thisMonth, 1).getDay();
+                        const offset = firstDay === 0 ? 6 : firstDay - 1;
+                        return Array.from({ length: offset }, (_, i) => <div key={`e${i}`} />);
+                      })()}
+                      {dots.map(d => (
+                        <div key={d.day} style={{
+                          aspectRatio: "1", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: d.count > 0 ? 800 : 600,
+                          color: d.count > 0 ? "#fff" : d.isToday ? C.accent : d.isPast ? C.text : C.textMuted,
+                          background: d.count > 0 ? C.accent : d.isToday ? `${C.accent}18` : "transparent",
+                          border: d.isToday && d.count === 0 ? `1.5px solid ${C.accent}` : "1.5px solid transparent"
+                        }}>
+                          {d.day}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, justifyContent: "flex-end" }}>
-                    <span style={{ fontSize: 10, color: C.textMuted }}>méně</span>
-                    {[0, 1, 2, 3].map(lvl => (
-                      <div key={lvl} style={{ width: 10, height: 10, borderRadius: 2, background: lvl === 0 ? "rgba(0,0,0,0.04)" : lvl === 1 ? C.mint : lvl === 2 ? C.accent : "#FF7B9B" }} />
-                    ))}
-                    <span style={{ fontSize: 10, color: C.textMuted }}>více</span>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </>);
           })()}
 
@@ -1848,6 +1926,9 @@ export default function FitApp() {
                       </button>
                       <button onClick={() => setSwapTarget(exIdx)} style={s.swapBtn} title="Vyměnit cvik">{I(IC.swap, 16)}</button>
                     </div>
+                    {NAMES_EN[ex.name] && NAMES_EN[ex.name] !== ex.name && (
+                      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 1 }}>{NAMES_EN[ex.name]}</div>
+                    )}
                     <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                       <span style={{ ...s.tagBadge, background: (GROUP_COLORS[ex.muscleGroup] || {}).bg, color: (GROUP_COLORS[ex.muscleGroup] || {}).text }}>{ex.muscleGroup}</span>
                       <span style={{ ...s.tagBadge, background: C.accentLight, color: C.accent }}>
@@ -1910,24 +1991,29 @@ export default function FitApp() {
                     </div>
                   ))}
                 </div>
-                {ex.setDetails.some(s => s.done) && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 18px" }}>
-                    <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Jak to šlo?</span>
+                {ex.setDetails.every(s => s.done) && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "10px 18px 6px" }}>
                     {[
-                      { val: "easy", color: C.mintDark, bg: C.mint, label: "Šlo to" },
-                      { val: "moderate", color: "#B87A4E", bg: C.peach, label: "Tak akorát" },
+                      { val: "easy", color: C.mintDark, bg: C.mint, label: "Easy" },
+                      { val: "moderate", color: C.accent, bg: C.accentLight, label: "Akorát" },
                       { val: "hard", color: "#C45A6A", bg: C.rose, label: "Dřina" },
-                    ].map(r => (
-                      <button key={r.val} onClick={() => updateExerciseRpe(exIdx, r.val)}
-                        style={{
-                          padding: "4px 10px", borderRadius: 8, border: "none", cursor: "pointer", fontFamily: F,
-                          fontSize: 11, fontWeight: 700, transition: "all 0.15s",
-                          background: ex.rpe === r.val ? r.bg : "transparent",
-                          color: ex.rpe === r.val ? r.color : C.textMuted,
-                        }}>
-                        {r.label}
-                      </button>
-                    ))}
+                    ].map(r => {
+                      const active = ex.rpe === r.val;
+                      return (
+                        <button key={r.val} onClick={() => updateExerciseRpe(exIdx, r.val)}
+                          style={{
+                            flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer",
+                            fontFamily: F, fontSize: 12, fontWeight: 700,
+                            background: active ? r.bg : "rgba(0,0,0,0.03)",
+                            color: active ? r.color : C.textMuted,
+                            boxShadow: active ? `inset 0 0 0 2px ${r.color}` : "none",
+                            transition: "all 0.2s ease",
+                            opacity: ex.rpe && !active ? 0.4 : 1,
+                          }}>
+                          {r.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2281,7 +2367,7 @@ const styles = {
   modalOverlay: { position: "fixed", inset: 0, background: "rgba(45,45,45,0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100, padding: 0 },
   modal: { background: "rgba(255,255,255,0.85)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderRadius: "20px 20px 0 0", padding: "28px 24px 32px", maxWidth: 480, width: "100%", boxShadow: "0 -8px 40px rgba(0,0,0,0.1)", borderTop: C.cardBorder },
   modalBadge: { display: "inline-block", marginTop: 8, padding: "5px 14px", borderRadius: C.rPill, fontSize: 13, fontWeight: 700 },
-  closeBtn: { background: C.bg, border: "none", borderRadius: 14, color: C.textSec, fontSize: 20, width: 40, height: 40, cursor: "pointer", fontFamily: F, fontWeight: 800 },
+  closeBtn: { background: "rgba(0,0,0,0.05)", border: "none", borderRadius: "50%", color: C.textSec, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   nav: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: C.cardBorder, borderRadius: "18px 18px 0 0", padding: "10px 0 14px", zIndex: 50 },
   navBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontFamily: F, padding: "6px 0", transition: "color 0.2s", fontWeight: 700, fontSize: 11 },
   navBtnActive: { color: C.text },
