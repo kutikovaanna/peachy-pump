@@ -412,6 +412,18 @@ const UI = {
       ],
     },
     toast: { swapped: "Cvik vyměněn!", deleted: "Trénink smazán", dataDeleted: "Data smazána" },
+    notes: {
+      new: "Nový cvik – zadej váhu, která ti sedí. Příště ti ji apka navrhne automaticky!",
+      profile: (d) => `Váha z tvého profilu: ${d.w} kg`,
+      deloadProfile: (d) => `Deload — ${d.w} kg (60% z profilu)`,
+      deload: (d) => `Deload týden — ${d.w} kg (60% z ${d.prev} kg)`,
+      comeback: (d) => `Po ${d.days} dnech pauzy — ${d.w} kg (návrat do formy)`,
+      rpeEasy: (d) => `Minule hodnoceno jako lehké → ${d.w} kg (+${d.inc} kg)`,
+      rpeHard: (d) => `Minule hodnoceno jako těžké — zůstaň na ${d.w} kg a zlepši techniku`,
+      up: (d) => `Minule ${d.prev} kg × ${d.reps} → dnes ${d.w} kg (+${d.inc} kg)`,
+      belowTarget: (d) => `Zůstaň na ${d.w} kg – minule ${d.reps} opak. (cíl: ${d.target})`,
+      stayMax: (d) => `Zůstaň na ${d.w} kg – opakování ještě nejsou na maximu`,
+    },
   },
   en: {
     nav: { home: "Home", workout: "Workout", library: "Exercises", settings: "Settings" },
@@ -485,6 +497,18 @@ const UI = {
       ],
     },
     toast: { swapped: "Exercise swapped!", deleted: "Workout deleted", dataDeleted: "Data deleted" },
+    notes: {
+      new: "New exercise – enter a weight that feels right. Next time the app will suggest it automatically!",
+      profile: (d) => `Weight from your profile: ${d.w} kg`,
+      deloadProfile: (d) => `Deload — ${d.w} kg (60% of profile)`,
+      deload: (d) => `Deload week — ${d.w} kg (60% of ${d.prev} kg)`,
+      comeback: (d) => `After ${d.days} days off — ${d.w} kg (easing back in)`,
+      rpeEasy: (d) => `Last time felt easy → ${d.w} kg (+${d.inc} kg)`,
+      rpeHard: (d) => `Last time felt hard — stay at ${d.w} kg and focus on form`,
+      up: (d) => `Last time ${d.prev} kg × ${d.reps} → today ${d.w} kg (+${d.inc} kg)`,
+      belowTarget: (d) => `Stay at ${d.w} kg – last time ${d.reps} reps (target: ${d.target})`,
+      stayMax: (d) => `Stay at ${d.w} kg – reps not yet at max`,
+    },
   },
 };
 
@@ -592,12 +616,9 @@ function calcProgression(lastPerf, muscleGroup, targetReps, weekConfig, keyLifts
     if (keyLiftWeight) {
       const w = weekConfig.deload ? Math.round(keyLiftWeight * 0.6 * 4) / 4 : keyLiftWeight;
       const tag = weekConfig.deload ? "deload" : "profile";
-      const note = weekConfig.deload
-        ? `Deload — ${w} kg (60% z profilu)`
-        : `Váha z tvého profilu: ${w} kg`;
-      return { suggestedWeight: String(w), tag, note, lastWeight: null };
+      return { suggestedWeight: String(w), tag, noteKey: weekConfig.deload ? "deloadProfile" : "profile", noteData: { w }, lastWeight: null };
     }
-    return { suggestedWeight: "", tag: "new", note: "Nový cvik – zadej váhu, která ti sedí. Příště ti ji apka navrhne automaticky!", lastWeight: null };
+    return { suggestedWeight: "", tag: "new", noteKey: "new", noteData: {}, lastWeight: null };
   }
 
   const avgWeight = lastPerf.sets.reduce((s, set) => s + parseFloat(set.weight || 0), 0) / lastPerf.sets.length;
@@ -619,69 +640,40 @@ function calcProgression(lastPerf, muscleGroup, targetReps, weekConfig, keyLifts
 
   if (weekConfig.deload) {
     const deloadWeight = Math.round(avgWeight * 0.6 * 4) / 4;
-    return {
-      suggestedWeight: String(deloadWeight),
-      tag: "deload",
-      note: `Deload týden — ${deloadWeight} kg (60% z ${avgWeight} kg)`,
-      lastWeight: avgWeight,
-    };
+    return { suggestedWeight: String(deloadWeight), tag: "deload", noteKey: "deload", noteData: { w: deloadWeight, prev: avgWeight }, lastWeight: avgWeight };
   }
 
   if (comebackPct < 1.0) {
     const comebackWeight = Math.round(avgWeight * comebackPct * 4) / 4;
     const days = Math.round(daysSinceLast);
-    return {
-      suggestedWeight: String(comebackWeight),
-      tag: "comeback",
-      note: `Po ${days} dnech pauzy — ${comebackWeight} kg (návrat do formy)`,
-      lastWeight: avgWeight,
-    };
+    return { suggestedWeight: String(comebackWeight), tag: "comeback", noteKey: "comeback", noteData: { w: comebackWeight, days }, lastWeight: avgWeight };
   }
 
   const lastRpe = lastPerf.rpe;
 
   if (lastRpe === "easy" && avgWeight > 0) {
     const newWeight = Math.round((avgWeight + increment) * 4) / 4;
-    return {
-      suggestedWeight: String(newWeight),
-      tag: "up",
-      note: `Minule hodnoceno jako lehké → ${newWeight} kg (+${increment} kg) 🔥`,
-      lastWeight: avgWeight,
-    };
+    return { suggestedWeight: String(newWeight), tag: "up", noteKey: "rpeEasy", noteData: { w: newWeight, inc: increment }, lastWeight: avgWeight };
   }
 
   if (lastRpe === "hard" && avgWeight > 0) {
-    return {
-      suggestedWeight: String(avgWeight),
-      tag: "same",
-      note: `Minule hodnoceno jako těžké — zůstaň na ${avgWeight} kg a zlepši techniku`,
-      lastWeight: avgWeight,
-    };
+    return { suggestedWeight: String(avgWeight), tag: "same", noteKey: "rpeHard", noteData: { w: avgWeight }, lastWeight: avgWeight };
   }
 
   if (allSetsHitTarget && avgWeight > 0) {
     const newWeight = Math.round((avgWeight + increment) * 4) / 4;
-    return {
-      suggestedWeight: String(newWeight),
-      tag: "up",
-      note: `Minule ${avgWeight} kg × ${Math.round(avgReps)} → dnes ${newWeight} kg (+${increment} kg) 🔥`,
-      lastWeight: avgWeight,
-    };
+    return { suggestedWeight: String(newWeight), tag: "up", noteKey: "up", noteData: { prev: avgWeight, reps: Math.round(avgReps), w: newWeight, inc: increment }, lastWeight: avgWeight };
   }
 
   if (avgReps < targetMin && avgWeight > 0) {
-    return {
-      suggestedWeight: String(avgWeight),
-      tag: "same",
-      note: `Zůstaň na ${avgWeight} kg – minule ${Math.round(avgReps)} opak. (cíl: ${targetReps})`,
-      lastWeight: avgWeight,
-    };
+    return { suggestedWeight: String(avgWeight), tag: "same", noteKey: "belowTarget", noteData: { w: avgWeight, reps: Math.round(avgReps), target: targetReps }, lastWeight: avgWeight };
   }
 
   return {
     suggestedWeight: String(avgWeight || ""),
     tag: "same",
-    note: avgWeight ? `Zůstaň na ${avgWeight} kg – opakování ještě nejsou na maximu` : "",
+    noteKey: avgWeight ? "stayMax" : "",
+    noteData: { w: avgWeight },
     lastWeight: avgWeight || null,
   };
 }
@@ -927,7 +919,8 @@ function generateWorkout(equipment, history, cycle, profile, preferredGroups = n
         weight: overloadResult.suggestedWeight || "",
         logged: false,
         progressTag: overloadResult.tag,
-        progressNote: overloadResult.note,
+        noteKey: overloadResult.noteKey,
+        noteData: overloadResult.noteData,
         lastWeight: overloadResult.lastWeight,
         setDetails: Array.from({ length: baseSets }, () => ({
           reps: "",
@@ -1220,7 +1213,8 @@ export default function FitApp() {
         weight: overloadResult.suggestedWeight || "",
         logged: false,
         progressTag: overloadResult.tag,
-        progressNote: overloadResult.note,
+        noteKey: overloadResult.noteKey,
+        noteData: overloadResult.noteData,
         lastWeight: overloadResult.lastWeight,
         setDetails: Array.from({ length: oldEx.sets }, () => ({
           reps: "",
@@ -2132,9 +2126,9 @@ export default function FitApp() {
                         <span style={{ ...s.tagBadge, background: C.sky, color: "#4E8EB8" }}>{t.workout.tags.hold}</span>
                       )}
                     </div>
-                    {ex.progressNote && (
+                    {ex.noteKey && t.notes[ex.noteKey] && (
                       <div style={{ fontSize: 12, color: C.textSec, marginTop: 6, lineHeight: 1.4, fontStyle: "italic" }}>
-                        {ex.progressNote}
+                        {typeof t.notes[ex.noteKey] === "function" ? t.notes[ex.noteKey](ex.noteData || {}) : t.notes[ex.noteKey]}
                       </div>
                     )}
                   </div>
