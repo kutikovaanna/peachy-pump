@@ -513,13 +513,28 @@ const UI = {
 };
 
 const SPLIT_PATTERNS = [
-  { label: "Push (Prsa + Ramena + Triceps)", groups: ["Prsa", "Ramena", "Triceps"] },
-  { label: "Pull (Záda + Biceps)", groups: ["Záda", "Biceps"] },
-  { label: "Legs (Nohy + Hýždě + Core)", groups: ["Nohy", "Hýždě", "Core"] },
-  { label: "Upper Body (Prsa + Záda + Ramena)", groups: ["Prsa", "Záda", "Ramena"] },
-  { label: "Lower Body + Core", groups: ["Nohy", "Hýždě", "Core"] },
-  { label: "Full Body", groups: ["Prsa", "Záda", "Nohy", "Ramena", "Core"] },
+  { label: "Push (Prsa + Ramena + Triceps)", groups: ["Prsa", "Ramena", "Triceps"], zone: "upper" },
+  { label: "Pull (Záda + Biceps)", groups: ["Záda", "Biceps"], zone: "upper" },
+  { label: "Legs (Nohy + Hýždě + Core)", groups: ["Nohy", "Hýždě", "Core"], zone: "lower" },
+  { label: "Upper Body (Prsa + Záda + Ramena)", groups: ["Prsa", "Záda", "Ramena"], zone: "upper" },
+  { label: "Lower + Ramena", groups: ["Nohy", "Hýždě", "Ramena"], zone: "mixed" },
+  { label: "Záda + Hýždě + Core", groups: ["Záda", "Hýždě", "Core"], zone: "mixed" },
+  { label: "Full Body", groups: ["Prsa", "Záda", "Nohy", "Ramena", "Core"], zone: "mixed" },
+  { label: "Nohy + Core", groups: ["Nohy", "Core", "Hýždě"], zone: "lower" },
 ];
+
+const UPPER_GROUPS = new Set(["Prsa", "Záda", "Ramena", "Biceps", "Triceps"]);
+const LOWER_GROUPS = new Set(["Nohy", "Hýždě", "Core"]);
+
+const EXERCISE_FAMILY = {
+  "Kliky": "pushup", "Diamantové kliky": "pushup", "Úzké kliky": "pushup",
+  "Tricepsové kliky na lavičce": "dip",
+  "Bench press": "bench", "Bench press s jednoručkami": "bench", "Šikmý bench press": "bench", "Chest press na stroji": "bench",
+  "Tlaky nad hlavu": "overhead_press", "Tlaky s jednoručkami": "overhead_press", "Arnold press": "overhead_press",
+  "Dřep (squat)": "squat_family", "Goblet squat": "squat_family", "Bulharské dřepy": "squat_family", "Sumo dřep": "squat_family",
+  "Mrtvý tah": "deadlift", "Rumunský mrtvý tah": "deadlift",
+  "Bicepsový curl": "curl", "Hammer curl": "curl", "Concentration curl": "curl", "Cable curl": "curl",
+};
 
 const WEEK_CONFIGS = [
   { label: "Akumulace", weightPct: 1.0, reps: { compound: "6-8", isolation: "10-12" }, setsBonus: 0, deload: false },
@@ -778,7 +793,7 @@ function getExerciseAlternatives(exercise, equipment, currentExerciseNames) {
   return { mine, other };
 }
 
-function selectExercises(group, eqSet, history, maxCount, globalUsedPatterns = {}) {
+function selectExercises(group, eqSet, history, maxCount, globalUsedPatterns = {}, globalUsedFamilies = {}) {
   const available = (EXERCISE_LIBRARY[group] || []).filter(ex =>
     ex.equipment.some(e => eqSet.has(e))
   );
@@ -800,6 +815,8 @@ function selectExercises(group, eqSet, history, maxCount, globalUsedPatterns = {
     const patternUses = globalUsedPatterns[ex.movementPattern] || 0;
     if (patternUses >= 2) score -= 80;
     else if (patternUses >= 1) score -= 30;
+    const family = EXERCISE_FAMILY[ex.name];
+    if (family && globalUsedFamilies[family]) score -= 120;
     score += Math.random() * 10;
     return { ...ex, _score: score };
   });
@@ -807,13 +824,17 @@ function selectExercises(group, eqSet, history, maxCount, globalUsedPatterns = {
 
   const selected = [];
   const usedPatterns = new Set();
+  const usedFamiliesLocal = new Set();
   const deferred = [];
 
   for (const ex of scored) {
     if (selected.length >= maxCount) break;
-    if (!usedPatterns.has(ex.movementPattern) || ex.movementPattern === "isolation" || ex.movementPattern === "core") {
+    const family = EXERCISE_FAMILY[ex.name];
+    const familyBlocked = family && (globalUsedFamilies[family] || usedFamiliesLocal.has(family));
+    if ((!usedPatterns.has(ex.movementPattern) || ex.movementPattern === "isolation" || ex.movementPattern === "core") && !familyBlocked) {
       selected.push(ex);
       usedPatterns.add(ex.movementPattern);
+      if (family) usedFamiliesLocal.add(family);
     } else {
       deferred.push(ex);
     }
@@ -827,6 +848,21 @@ function selectExercises(group, eqSet, history, maxCount, globalUsedPatterns = {
   return selected;
 }
 
+function getRecentZoneBalance(history) {
+  const cutoff = Date.now() - 5 * 24 * 60 * 60 * 1000;
+  let upper = 0, lower = 0, mixed = 0;
+  for (const w of history) {
+    if (new Date(w.date).getTime() < cutoff) break;
+    const groups = new Set(w.exercises.filter(e => e.logged).map(e => e.muscleGroup));
+    const hasUpper = [...groups].some(g => UPPER_GROUPS.has(g));
+    const hasLower = [...groups].some(g => LOWER_GROUPS.has(g));
+    if (hasUpper && hasLower) mixed++;
+    else if (hasUpper) upper++;
+    else if (hasLower) lower++;
+  }
+  return { upper, lower, mixed };
+}
+
 function generateWorkout(equipment, history, cycle, profile, preferredGroups = null) {
   const cycleInfo = getCycleInfo(cycle);
   const weekConfig = cycleInfo.config;
@@ -837,6 +873,7 @@ function generateWorkout(equipment, history, cycle, profile, preferredGroups = n
   const weakGroups = new Set(weakPoints.map(wp => wp.weakGroup).filter(Boolean));
 
   const eqSet = new Set(equipment);
+  const zoneBalance = getRecentZoneBalance(history);
 
   let bestSplit;
   if (preferredGroups) {
@@ -854,7 +891,17 @@ function generateWorkout(equipment, history, cycle, profile, preferredGroups = n
       }
       const coveragePct = groupsWithExercises / sp.groups.length;
       const varietyScore = patterns.size * 5 + coveragePct * 15;
-      return { ...sp, score: avgRecovery + weakBonus + varietyScore };
+
+      let zoneBonus = 0;
+      if (sp.zone === "upper" && zoneBalance.upper > zoneBalance.lower + 1) zoneBonus = -25;
+      else if (sp.zone === "upper" && zoneBalance.upper > zoneBalance.lower) zoneBonus = -12;
+      else if (sp.zone === "lower" && zoneBalance.lower > zoneBalance.upper + 1) zoneBonus = -25;
+      else if (sp.zone === "lower" && zoneBalance.lower > zoneBalance.upper) zoneBonus = -12;
+      else if (sp.zone === "lower" && zoneBalance.upper > zoneBalance.lower) zoneBonus = 15;
+      else if (sp.zone === "upper" && zoneBalance.lower > zoneBalance.upper) zoneBonus = 15;
+      if (sp.zone === "mixed") zoneBonus += 5;
+
+      return { ...sp, score: avgRecovery + weakBonus + varietyScore + zoneBonus };
     });
     scored.sort((a, b) => b.score - a.score);
     bestSplit = scored[0];
@@ -862,6 +909,7 @@ function generateWorkout(equipment, history, cycle, profile, preferredGroups = n
 
   const exercises = [];
   const globalUsedPatterns = {};
+  const globalUsedFamilies = {};
 
   const groupCount = bestSplit.groups.length;
 
@@ -894,10 +942,12 @@ function generateWorkout(equipment, history, cycle, profile, preferredGroups = n
       exerciseCount = Math.max(1, Math.ceil(remaining / baseSets));
     }
 
-    const selected = selectExercises(group, eqSet, history, exerciseCount, globalUsedPatterns);
+    const selected = selectExercises(group, eqSet, history, exerciseCount, globalUsedPatterns, globalUsedFamilies);
 
     for (const ex of selected) {
       globalUsedPatterns[ex.movementPattern] = (globalUsedPatterns[ex.movementPattern] || 0) + 1;
+      const family = EXERCISE_FAMILY[ex.name];
+      if (family) globalUsedFamilies[family] = (globalUsedFamilies[family] || 0) + 1;
       const exType = ex.type === "compound" ? "compound" : "isolation";
       const reps = ex.isHold ? "30-60s" : weekConfig.reps[exType];
       const lastPerformance = getLastPerformance(ex.name, history);
