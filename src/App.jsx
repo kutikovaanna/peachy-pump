@@ -1082,6 +1082,7 @@ export default function FitApp() {
   const [workoutStartTime, setWorkoutStartTime] = useState(null);
   const [prToast, setPrToast] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [calendarOffset, setCalendarOffset] = useState(0);
   const restTimerRef = useRef(null);
 
   const isFirstMount = useRef(true);
@@ -1814,36 +1815,59 @@ export default function FitApp() {
               {history.length > 0 && (() => {
                 const now = new Date();
                 const monthNamesFull = t.home.months;
-                const thisMonth = now.getMonth();
-                const thisYear = now.getFullYear();
-                const thisMonthCount = history.filter(w => {
+                const viewDate = new Date(now.getFullYear(), now.getMonth() + calendarOffset, 1);
+                const viewMonth = viewDate.getMonth();
+                const viewYear = viewDate.getFullYear();
+                const isCurrentMonth = calendarOffset === 0;
+                const monthCount = history.filter(w => {
                   const d = new Date(w.date);
-                  return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+                  return d.getMonth() === viewMonth && d.getFullYear() === viewYear;
                 }).length;
-                const daysInMonth = new Date(thisYear, thisMonth + 1, 0).getDate();
-                const today = now.getDate();
+                const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+                const todayDate = now.getDate();
                 const dots = [];
                 for (let d = 1; d <= daysInMonth; d++) {
-                  const ds = `${thisYear}-${String(thisMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  const ds = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
                   const count = history.filter(w => w.date?.slice(0, 10) === ds).length;
-                  dots.push({ day: d, count, isToday: d === today, isPast: d <= today });
+                  const isToday = isCurrentMonth && d === todayDate;
+                  const isPast = isCurrentMonth ? d <= todayDate : calendarOffset < 0;
+                  dots.push({ day: d, count, isToday, isPast });
                 }
+
+                const oldestDate = history.length > 0
+                  ? new Date(history[history.length - 1].date)
+                  : now;
+                const minOffset = (oldestDate.getFullYear() - now.getFullYear()) * 12 + (oldestDate.getMonth() - now.getMonth());
 
                 return (
                   <div style={{
                     marginTop: 12, padding: 16, borderRadius: C.r, border: C.cardBorder,
                     background: C.cardGrad, boxShadow: C.shadow
                   }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{monthNamesFull[thisMonth]}</div>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{thisMonthCount}<span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}> {t.home.workouts(thisMonthCount)}</span></div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button onClick={() => setCalendarOffset(o => Math.max(minOffset, o - 1))} style={{
+                          background: "none", border: "none", cursor: "pointer", padding: 4,
+                          color: calendarOffset <= minOffset ? C.textMuted : C.text, opacity: calendarOffset <= minOffset ? 0.3 : 1,
+                          fontSize: 16, fontWeight: 900, lineHeight: 1
+                        }} disabled={calendarOffset <= minOffset}>‹</button>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.text, minWidth: 80, textAlign: "center" }}>
+                          {monthNamesFull[viewMonth]}{!isCurrentMonth && viewYear !== now.getFullYear() ? ` ${viewYear}` : ""}
+                        </div>
+                        <button onClick={() => setCalendarOffset(o => Math.min(0, o + 1))} style={{
+                          background: "none", border: "none", cursor: "pointer", padding: 4,
+                          color: isCurrentMonth ? C.textMuted : C.text, opacity: isCurrentMonth ? 0.3 : 1,
+                          fontSize: 16, fontWeight: 900, lineHeight: 1
+                        }} disabled={isCurrentMonth}>›</button>
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{monthCount}<span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}> {t.home.workouts(monthCount)}</span></div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
                       {t.home.days.map(d => (
                         <div key={d} style={{ fontSize: 9, fontWeight: 700, color: C.textMuted, textAlign: "center", paddingBottom: 2 }}>{d}</div>
                       ))}
                       {(() => {
-                        const firstDay = new Date(thisYear, thisMonth, 1).getDay();
+                        const firstDay = new Date(viewYear, viewMonth, 1).getDay();
                         const offset = firstDay === 0 ? 6 : firstDay - 1;
                         return Array.from({ length: offset }, (_, i) => <div key={`e${i}`} />);
                       })()}
