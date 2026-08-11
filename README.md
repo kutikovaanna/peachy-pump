@@ -6,7 +6,7 @@ A progressive workout generator built around antagonist superset logic. React + 
 
 ## How it works
 
-Workouts follow a fixed structural template — three antagonist supersets (8 exercises total) plus a light accessory/mobility finisher. Exercises are selected dynamically based on available equipment and training history.
+Workouts follow a fixed structural template — antagonist supersets (8–9 exercises total) plus a light accessory/mobility finisher. Exercises are selected dynamically based on available equipment and training history.
 
 ### Antagonist training
 
@@ -19,7 +19,7 @@ squat            ↔  hip_hinge         (quads vs hamstrings)
 core_antiextension ↔ core_rotation
 ```
 
-### Two alternating templates
+### Three rotating templates
 
 **Workout A — Lower dominant**
 - SS1: `squat` ↔ `hip_hinge`
@@ -33,7 +33,13 @@ core_antiextension ↔ core_rotation
 - SS3: `core_antiextension` ↔ `core_rotation`
 - SS4: accessory / mobility (hips, lower body)
 
-At 3×/week the rotation is A → B → A, then B → A → B, giving lower body twice-weekly frequency. The SS4 finisher rotates through neglected muscles and mobility work — things like Copenhagen planks, face pulls, thoracic rotation — depending on which template was just done.
+**Workout C — Full body · Upper focus**
+- SS1: `squat` ↔ `hip_hinge`
+- SS2: `horizontal_push` ↔ `horizontal_pull` ↔ `shoulder_isolation`
+- SS3: `vertical_push` ↔ `core_antiextension`
+- SS4: `hip_hinge_isolation` ↔ `core_rotation` (lighter, 2 sets)
+
+Rotation is A → B → C → A → B → C. At 3×/week this gives each body region roughly equal coverage across a week. The SS4 finisher rotates through neglected muscles and mobility work — things like Copenhagen planks, face pulls, thoracic rotation.
 
 ---
 
