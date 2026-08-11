@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   EXERCISE_LIBRARY, ACCESSORY_LIBRARY, EQUIPMENT_OPTIONS,
   MUSCLE_GROUPS, GROUP_COLORS, NAMES_EN, KEY_LIFT_EXERCISES,
+  getExerciseGifUrl,
 } from "./exercises.js";
 
 import {
@@ -795,6 +796,21 @@ export default function FitApp() {
               </div>
 
               <p style={{ color: C.textSec, fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>{selectedExercise.desc || exLib?.desc}</p>
+
+              {(() => {
+                const gifUrl = getExerciseGifUrl(selectedExercise.name);
+                if (!gifUrl) return null;
+                return (
+                  <div style={{ marginTop: 12, borderRadius: 12, overflow: "hidden", background: "#f5f5f7", display: "flex", justifyContent: "center" }}>
+                    <img
+                      src={gifUrl}
+                      alt={selectedExercise.name}
+                      style={{ width: "100%", maxWidth: 280, height: "auto", display: "block" }}
+                      loading="lazy"
+                    />
+                  </div>
+                );
+              })()}
 
               <a
                 href={`https://www.youtube.com/results?search_query=${encodeURIComponent((NAMES_EN[selectedExercise.name] || selectedExercise.name) + " exercise form")}`}
