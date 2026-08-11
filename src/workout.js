@@ -367,16 +367,93 @@ function generateTemplateB(eqSet, history, weekConfig, profile) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// WORKOUT TEMPLATE C — Full body · Upper focus
+//
+// SS1 (2): squat ↔ hip_hinge
+// SS2 (3): horizontal_push ↔ horizontal_pull ↔ shoulder_isolation
+// SS3 (2): vertical_push ↔ core_antiextension
+// SS4 (2): hip_hinge_iso ↔ core_rotation (accessory, 2 sets)
+// ─────────────────────────────────────────────────────────────
+
+function generateTemplateC(eqSet, history, weekConfig, profile) {
+  const usedNames = new Set();
+  const baseSets  = Math.max(2, 3 + weekConfig.setsBonus);
+  const accSets   = 2;
+
+  const repsC = weekConfig.reps.compound;
+  const repsI = weekConfig.reps.isolation;
+
+  // SS1
+  const ss1a = pickExercise(PATTERNS.SQUAT,     eqSet, history, usedNames);
+  const ss1b = pickExercise(PATTERNS.HIP_HINGE, eqSet, history, usedNames);
+  if (ss1a) usedNames.add(ss1a.name);
+  if (ss1b) usedNames.add(ss1b.name);
+
+  // SS2
+  const ss2a = pickExercise(PATTERNS.HORIZONTAL_PUSH, eqSet, history, usedNames);
+  const ss2b = pickExercise(PATTERNS.HORIZONTAL_PULL, eqSet, history, usedNames);
+  const ss2c = pickExercise(PATTERNS.SHOULDER_ISO,    eqSet, history, usedNames);
+  if (ss2a) usedNames.add(ss2a.name);
+  if (ss2b) usedNames.add(ss2b.name);
+  if (ss2c) usedNames.add(ss2c.name);
+
+  // SS3
+  const ss3a = pickExercise(PATTERNS.VERTICAL_PUSH,      eqSet, history, usedNames);
+  const ss3b = pickExercise(PATTERNS.CORE_ANTIEXTENSION, eqSet, history, usedNames);
+  if (ss3a) usedNames.add(ss3a.name);
+  if (ss3b) usedNames.add(ss3b.name);
+
+  // SS4 — accessory, lighter
+  const ss4a = pickExercise(PATTERNS.HIP_HINGE_ISO,  eqSet, history, usedNames);
+  const ss4b = pickExercise(PATTERNS.CORE_ROTATION,  eqSet, history, usedNames);
+  if (ss4a) usedNames.add(ss4a.name);
+  if (ss4b) usedNames.add(ss4b.name);
+
+  const exercises = [];
+
+  if (ss1a && ss1b) {
+    exercises.push(...buildSuperset([
+      buildExercise(ss1a, baseSets, repsC, weekConfig, history, profile),
+      buildExercise(ss1b, baseSets, repsC, weekConfig, history, profile),
+    ]));
+  }
+
+  const ss2members = [ss2a, ss2b, ss2c].filter(Boolean);
+  if (ss2members.length >= 2) {
+    exercises.push(...buildSuperset(ss2members.map(ex => {
+      const r = ex.type === "compound" ? repsC : repsI;
+      return buildExercise(ex, baseSets, r, weekConfig, history, profile);
+    })));
+  }
+
+  if (ss3a && ss3b) {
+    exercises.push(...buildSuperset([
+      buildExercise(ss3a, baseSets, repsC, weekConfig, history, profile),
+      buildExercise(ss3b, accSets, ss3b.isHold ? "30-45s" : repsI, weekConfig, history, profile),
+    ]));
+  }
+
+  if (ss4a && ss4b) {
+    exercises.push(...buildSuperset([
+      buildExercise(ss4a, accSets, repsI, weekConfig, history, profile),
+      buildExercise(ss4b, accSets, ss4b.isHold ? "30-45s" : repsI, weekConfig, history, profile),
+    ]));
+  }
+
+  return exercises;
+}
+
+// ─────────────────────────────────────────────────────────────
 // TEMPLATE ROTATION LOGIC
-// Determines whether to run A or B based on history
+// Determines whether to run A, B, or C based on history
 // ─────────────────────────────────────────────────────────────
 
 function determineTemplate(history) {
-  // Find the last completed workout's template
+  const rotation = { A: "B", B: "C", C: "A" };
   for (const w of history) {
-    if (w.template) return w.template === "A" ? "B" : "A";
+    if (w.template) return rotation[w.template] || "A";
   }
-  return "A"; // first ever workout
+  return "A";
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -389,11 +466,18 @@ export function generateWorkout(equipment, history, cycle, profile) {
   const weekConfig = cycleInfo.config;
   const template  = determineTemplate(history);
 
-  const exercises = template === "A"
-    ? generateTemplateA(eqSet, history, weekConfig, profile)
-    : generateTemplateB(eqSet, history, weekConfig, profile);
-
-  const templateLabel = template === "A" ? "Lower dominant" : "Upper + Core";
+  let exercises;
+  let templateLabel;
+  if (template === "A") {
+    exercises = generateTemplateA(eqSet, history, weekConfig, profile);
+    templateLabel = "Lower dominant";
+  } else if (template === "B") {
+    exercises = generateTemplateB(eqSet, history, weekConfig, profile);
+    templateLabel = "Upper + Core";
+  } else {
+    exercises = generateTemplateC(eqSet, history, weekConfig, profile);
+    templateLabel = "Full body · Upper focus";
+  }
 
   return {
     id:         Math.random().toString(36).substr(2, 9),
