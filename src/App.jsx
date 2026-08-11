@@ -96,7 +96,7 @@ const UI = {
       title: "Dnešní trénink", rest: "Odpočinek", skip: "Přeskočit",
       done: "hotovo", set: "Set", weightKg: "Váha (kg)", reps: "Opak.", timeS: "Čas (s)",
       easy: "Easy", moderate: "Akorát", hard: "Dřina",
-      superset: "SUPERSET", supersetHint: "Střídej série: 1A → 1B → 2A → 2B …",
+      superset: "SUPERSET", supersetHint2: "Střídej série: 1A → 1B → 2A → 2B …", supersetHint3: "Střídej série: 1A → 1B → 1C → 2A → 2B → 2C …",
       finish: "Dokončit trénink",
       tags: { up: "↑ Zvýšeno", same: "→ Stejná váha", new: "✦ Nový", deload: "🧘 Deload", comeback: "↩ Návrat", profile: "Profil", bodyweight: "Vlastní váha", hold: "Výdrž" },
     },
@@ -181,7 +181,7 @@ const UI = {
       title: "Today's workout", rest: "Rest", skip: "Skip",
       done: "done", set: "Set", weightKg: "Weight (kg)", reps: "Reps", timeS: "Time (s)",
       easy: "Easy", moderate: "Moderate", hard: "Hard",
-      superset: "SUPERSET", supersetHint: "Alternate sets: 1A → 1B → 2A → 2B …",
+      superset: "SUPERSET", supersetHint2: "Alternate sets: 1A → 1B → 2A → 2B …", supersetHint3: "Alternate sets: 1A → 1B → 1C → 2A → 2B → 2C …",
       finish: "Finish workout",
       tags: { up: "↑ Increased", same: "→ Same weight", new: "✦ New", deload: "🧘 Deload", comeback: "↩ Return", profile: "Profile", bodyweight: "Bodyweight", hold: "Hold" },
     },
@@ -1468,13 +1468,19 @@ export default function FitApp() {
             for (let i = 0; i < exs.length; i++) {
               if (processed.has(i)) continue;
               if (exs[i].pairId) {
-                const j = exs.findIndex((e, idx) => idx > i && e.pairId === exs[i].pairId);
-                if (j !== -1 && !processed.has(j)) {
-                  processed.add(i);
-                  processed.add(j);
-                  groups.push({ type: "superset", indices: [i, j] });
-                  continue;
+                const members = [];
+                for (let k = i; k < exs.length; k++) {
+                  if (exs[k].pairId === exs[i].pairId && !processed.has(k)) {
+                    members.push(k);
+                    processed.add(k);
+                  }
                 }
+                if (members.length >= 2) {
+                  groups.push({ type: "superset", indices: members });
+                } else {
+                  groups.push({ type: "solo", indices: members });
+                }
+                continue;
               }
               processed.add(i);
               groups.push({ type: "solo", indices: [i] });
@@ -1482,22 +1488,20 @@ export default function FitApp() {
 
             return groups.map((g, gi) => {
               if (g.type === "superset") {
-                const [a, b] = g.indices;
+                const hintKey = g.indices.length >= 3 ? "supersetHint3" : "supersetHint2";
                 return (
                   <div key={`ss_${gi}`} style={s.supersetWrap}>
                     <div style={s.supersetHeader}>
                       <span style={s.supersetBadge}>{t.workout.superset}</span>
-                      <span style={{ color: C.textSec, fontSize: 12 }}>{t.workout.supersetHint}</span>
+                      <span style={{ color: C.textSec, fontSize: 12 }}>{t.workout[hintKey]}</span>
                     </div>
                     <div style={{ ...s.supersetCards, display: "flex", flexDirection: "column", gap: 20 }}>
-                      <div>
-                        <div style={{ ...s.supersetLabel, marginBottom: 8 }}>A</div>
-                        {renderCard(exs[a], a)}
-                      </div>
-                      <div>
-                        <div style={{ ...s.supersetLabel, marginBottom: 8 }}>B</div>
-                        {renderCard(exs[b], b)}
-                      </div>
+                      {g.indices.map((idx, slotIdx) => (
+                        <div key={exs[idx].id}>
+                          <div style={{ ...s.supersetLabel, marginBottom: 8 }}>{String.fromCharCode(65 + slotIdx)}</div>
+                          {renderCard(exs[idx], idx)}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
