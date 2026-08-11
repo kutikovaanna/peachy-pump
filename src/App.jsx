@@ -1242,6 +1242,23 @@ export default function FitApp() {
             </div>
           )}
 
+          {history.length === 0 && (
+            <div style={{
+              textAlign: "center", padding: "40px 24px", marginTop: 16, borderRadius: C.r,
+              background: C.cardGrad, border: C.cardBorder, boxShadow: C.shadow,
+            }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🍑</div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 8 }}>
+                {lang === "cs" ? "Tvůj první trénink čeká!" : "Your first workout awaits!"}
+              </h3>
+              <p style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6, maxWidth: 260, margin: "0 auto" }}>
+                {lang === "cs"
+                  ? "Vygeneruj si trénink a začni sledovat svůj progres. Každý trénink tě posouvá dál."
+                  : "Generate a workout and start tracking your progress. Every session counts."}
+              </p>
+            </div>
+          )}
+
           {history.length > 0 && (
             <div style={s.section}>
               <h2 style={{ ...s.sectionTitle, marginBottom: 12 }}>Poslední tréninky</h2>
@@ -1331,22 +1348,38 @@ export default function FitApp() {
             </div>
           </div>
 
-          {restTimer.active && restTimer.remaining > 0 && (
+          {restTimer.active && restTimer.remaining > 0 && (() => {
+            const pct = restTimer.remaining / restTimer.seconds;
+            const radius = 52;
+            const circumference = 2 * Math.PI * radius;
+            const dashOffset = circumference * (1 - pct);
+            return (
             <div style={{
-              textAlign: "center", padding: "16px", marginBottom: 14, borderRadius: C.r,
+              textAlign: "center", padding: "20px", marginBottom: 14, borderRadius: C.r,
               background: `linear-gradient(135deg, ${C.accent}15, ${C.rose}15)`,
-              border: `2px solid ${C.accent}40`, animation: "timerPulse 2s ease infinite"
+              border: `2px solid ${C.accent}40`,
             }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>{t.workout.rest}</div>
-              <div style={{ fontFamily: "Syne, " + F, fontSize: 42, fontWeight: 900, color: C.accent, marginTop: 4 }}>
-                {Math.floor(restTimer.remaining / 60)}:{(restTimer.remaining % 60).toString().padStart(2, "0")}
+              <div style={{ position: "relative", width: 130, height: 130, margin: "0 auto" }}>
+                <svg width="130" height="130" viewBox="0 0 130 130" style={{ transform: "rotate(-90deg)" }}>
+                  <circle cx="65" cy="65" r={radius} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="8" />
+                  <circle cx="65" cy="65" r={radius} fill="none" stroke={C.accent} strokeWidth="8"
+                    strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={dashOffset}
+                    style={{ transition: "stroke-dashoffset 1s linear" }} />
+                </svg>
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>{t.workout.rest}</div>
+                  <div style={{ fontFamily: "Syne, " + F, fontSize: 32, fontWeight: 900, color: C.accent, marginTop: 2 }}>
+                    {Math.floor(restTimer.remaining / 60)}:{(restTimer.remaining % 60).toString().padStart(2, "0")}
+                  </div>
+                </div>
               </div>
               <button onClick={() => { clearInterval(restTimerRef.current); setRestTimer(prev => ({ ...prev, active: false, remaining: 0 })); }}
-                style={{ marginTop: 8, padding: "6px 20px", borderRadius: C.rPill, border: "none", background: C.bg, color: C.textSec, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
+                style={{ marginTop: 12, padding: "8px 24px", borderRadius: C.rPill, border: "none", background: C.bg, color: C.textSec, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
                 {t.workout.skip}
               </button>
             </div>
-          )}
+            );
+          })()}
 
           <div style={s.progressBarBg}>
             <div style={{
@@ -1359,8 +1392,17 @@ export default function FitApp() {
           </div>
 
           {(() => {
-            const renderCard = (ex, exIdx) => (
-              <div key={ex.id} style={{ ...s.exerciseCard, borderLeftColor: (GROUP_COLORS[ex.muscleGroup] || {}).bg || "transparent", ...(ex.logged ? s.exerciseCardDone : {}), marginBottom: ex.pairId ? 0 : 14 }}>
+            const firstUndoneIdx = currentWorkout.exercises.findIndex(e => !e.logged);
+            const renderCard = (ex, exIdx) => {
+              const isNext = exIdx === firstUndoneIdx;
+              return (
+              <div key={ex.id} style={{
+                ...s.exerciseCard,
+                borderLeftColor: (GROUP_COLORS[ex.muscleGroup] || {}).bg || "transparent",
+                ...(ex.logged ? s.exerciseCardDone : {}),
+                ...(isNext ? { boxShadow: `0 0 0 2px ${C.accent}44, ${C.shadow}` } : {}),
+                marginBottom: ex.pairId ? 0 : 14,
+              }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -1428,7 +1470,7 @@ export default function FitApp() {
                         onChange={e => updateSetDetail(exIdx, si, "reps", e.target.value)}
                         style={{ ...s.setInput, ...(ex.isHold ? { background: C.sky } : {}) }} />
                       <button onClick={() => toggleSetDone(exIdx, si)}
-                        style={{ ...s.checkBtn, ...(set.done ? s.checkBtnDone : {}), ...(setPopId === `${exIdx}-${si}` ? { animation: "popIn 0.4s ease" } : {}) }}>
+                        style={{ ...s.checkBtn, ...(set.done ? s.checkBtnDone : {}), ...(setPopId === `${exIdx}-${si}` ? { animation: "checkBounce 0.4s ease" } : {}) }}>
                         {set.done ? I(IC.check, 16) : ""}
                       </button>
                     </div>
@@ -1461,6 +1503,7 @@ export default function FitApp() {
                 )}
               </div>
             );
+            };
 
             const groups = [];
             const processed = new Set();
@@ -1706,6 +1749,18 @@ const globalCSS = `
   @keyframes ringExpand {
     0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; border-width: 6px; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; border-width: 1px; }
+  }
+  @keyframes checkBounce {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.3); }
+    50% { transform: scale(0.9); }
+    70% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+  @keyframes cardDone {
+    0% { opacity: 1; }
+    30% { opacity: 0.6; }
+    100% { opacity: 1; }
   }
   @keyframes viewSlideIn {
     from { opacity: 0; transform: translateX(60px); }
