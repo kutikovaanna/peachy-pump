@@ -1294,8 +1294,8 @@ export default function FitApp() {
 
           <div style={{ marginBottom: 32 }}>
             <h1 style={{ ...s.logo, marginBottom: 8, lineHeight: 0.85 }}>
-              <span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span><br/>
-              <span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span>
+              <span style={{ fontFamily: FSerif, fontStyle: "italic" }}>Peachy</span><br/>
+              <span style={{ fontFamily: FSerif }}>Pump</span>
             </h1>
             <p style={{ fontSize: 14, color: C.textMuted, fontWeight: 600 }}>{t.onboard.subtitle}</p>
           </div>
@@ -1525,19 +1525,19 @@ export default function FitApp() {
                 ))}
               </div>
 
-              <h2 style={{ fontFamily: "Syne, " + F, fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 6, letterSpacing: -0.5 }}>{t.celebration.done}</h2>
+              <h2 style={{ fontFamily: FSerif, fontSize: 28, fontWeight: 900, color: C.text, marginBottom: 6, letterSpacing: -0.5 }}>{t.celebration.done}</h2>
               <p style={{ fontFamily: F, fontSize: 15, color: C.textSec, marginBottom: 28, lineHeight: 1.5, fontWeight: 600 }}>{quote}</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
                 <div style={{ background: `linear-gradient(135deg, ${C.accentLight}, rgba(255,255,255,0.6))`, borderRadius: 16, padding: "14px 8px", border: "1px solid rgba(255,255,255,0.5)" }}>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: C.accent, fontFamily: "Syne, " + F, animation: "countUp 0.6s 0.3s ease both" }}>{celebration.exercises}</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: "rgba(18,10,4,0.7)", fontFamily: FSerif, animation: "countUp 0.6s 0.3s ease both" }}>{celebration.exercises}</div>
                   <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>{t.celebration.exercises}</div>
                 </div>
                 <div style={{ background: `linear-gradient(135deg, ${C.mint}40, rgba(255,255,255,0.6))`, borderRadius: 16, padding: "14px 8px", border: "1px solid rgba(255,255,255,0.5)" }}>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: C.mintDark, fontFamily: "Syne, " + F, animation: "countUp 0.6s 0.5s ease both" }}>{celebration.sets}</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: C.mintDark, fontFamily: FSerif, animation: "countUp 0.6s 0.5s ease both" }}>{celebration.sets}</div>
                   <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>{t.celebration.sets}</div>
                 </div>
                 <div style={{ background: `linear-gradient(135deg, ${C.sky}60, rgba(255,255,255,0.6))`, borderRadius: 16, padding: "14px 8px", border: "1px solid rgba(255,255,255,0.5)" }}>
-                  <div style={{ fontSize: 26, fontWeight: 900, color: "#4E8EB8", fontFamily: "Syne, " + F, animation: "countUp 0.6s 0.7s ease both" }}>{celebration.duration || 0}</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: "#4E8EB8", fontFamily: FSerif, animation: "countUp 0.6s 0.7s ease both" }}>{celebration.duration || 0}</div>
                   <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, fontFamily: F, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>{t.celebration.minutes}</div>
                 </div>
               </div>
@@ -1552,9 +1552,9 @@ export default function FitApp() {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d={IC.zap} stroke={C.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       <div style={{ flex: 1, textAlign: "left" }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{pr.name}</div>
-                        <div style={{ fontSize: 11, color: C.accent, fontWeight: 700 }}>{pr.prev} → {pr.now} kg</div>
+                        <div style={{ fontSize: 11, color: "rgba(18,10,4,0.84)", fontWeight: 700 }}>{pr.prev} → {pr.now} kg</div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 900, color: C.accent, letterSpacing: 1 }}>PR!</span>
+                      <span style={{ fontSize: 11, fontWeight: 900, color: "rgba(18,10,4,0.84)", letterSpacing: 1 }}>PR!</span>
                     </div>
                   ))}
                 </div>
@@ -1566,7 +1566,7 @@ export default function FitApp() {
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 10
                 }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M8 21h8m-4-4v4M5 3h14l-1.5 6.5a2 2 0 01-2 1.5h-7a2 2 0 01-2-1.5L5 3z" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M5 3L2 8h4M19 3l3 5h-4" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  <span style={{ fontSize: 18, fontWeight: 900, color: "#FFD700", fontFamily: "Syne, " + F, letterSpacing: -0.3 }}>{t.celebration.milestone(celebration.milestone)}</span>
+                  <span style={{ fontSize: 18, fontWeight: 900, color: "#FFD700", fontFamily: FSerif, letterSpacing: -0.3 }}>{t.celebration.milestone(celebration.milestone)}</span>
                 </div>
               )}
               <div style={{ fontSize: 13, color: C.textMuted, fontFamily: F, fontWeight: 600, marginBottom: 4 }}>#{celebration.workoutNum} · {celebration.split}</div>
@@ -1801,7 +1801,7 @@ export default function FitApp() {
                         animation: `countUp 0.3s ${i * 0.08}s ease both`
                       }} />
                     ))}
-                    {streak > 8 && <span style={{ fontSize: 11, color: C.accent, fontWeight: 700, lineHeight: "8px" }}>+{streak - 8}</span>}
+                    {streak > 8 && <span style={{ fontSize: 11, color: "rgba(18,10,4,0.84)", fontWeight: 700, lineHeight: "8px" }}>+{streak - 8}</span>}
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                     {t.home.streak(streak)}
@@ -1858,7 +1858,7 @@ export default function FitApp() {
                           fontSize: 16, fontWeight: 900, lineHeight: 1
                         }} disabled={isCurrentMonth}>›</button>
                       </div>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: C.accent }}>{monthCount}<span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}> {t.home.workouts(monthCount)}</span></div>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: "rgba(18,10,4,0.84)" }}>{monthCount}<span style={{ fontSize: 12, fontWeight: 700, color: C.textMuted }}> {t.home.workouts(monthCount)}</span></div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
                       {t.home.days.map(d => (
@@ -2090,7 +2090,7 @@ export default function FitApp() {
             <button onClick={() => navigateView("home")} style={s.backBtn}>{I(IC.back, 22)}</button>
             <div>
               <h2 style={{ margin: 0, color: C.text, fontSize: 22 }}>{t.workout.title}</h2>
-              <div style={{ color: C.accent, fontSize: 14, fontWeight: 600, marginTop: 2 }}>
+              <div style={{ color: "rgba(18,10,4,0.84)", fontSize: 14, fontWeight: 600, marginTop: 2 }}>
                 {currentWorkout.splitLabel}
                 {currentWorkout.weekLabel && <span style={{ color: C.textSec, fontWeight: 400 }}> · {currentWorkout.weekLabel}</span>}
               </div>
@@ -2134,7 +2134,7 @@ export default function FitApp() {
               border: `2px solid ${C.accent}40`, animation: "timerPulse 2s ease infinite"
             }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>{t.workout.rest}</div>
-              <div style={{ fontFamily: "Syne, " + F, fontSize: 42, fontWeight: 900, color: C.accent, marginTop: 4 }}>
+              <div style={{ fontFamily: FSerif, fontSize: 42, fontWeight: 900, color: "rgba(18,10,4,0.84)", marginTop: 4 }}>
                 {Math.floor(restTimer.remaining / 60)}:{(restTimer.remaining % 60).toString().padStart(2, "0")}
               </div>
               <button onClick={() => { clearInterval(restTimerRef.current); setRestTimer(prev => ({ ...prev, active: false, remaining: 0 })); }}
@@ -2170,7 +2170,7 @@ export default function FitApp() {
                     )}
                     <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                       <span style={{ ...s.tagBadge, background: (GROUP_COLORS[ex.muscleGroup] || {}).bg, color: (GROUP_COLORS[ex.muscleGroup] || {}).text }}>{mgL[ex.muscleGroup] || ex.muscleGroup}</span>
-                      <span style={{ ...s.tagBadge, background: C.accentLight, color: C.accent }}>
+                      <span style={{ ...s.tagBadge, background: C.accentLight, color: "rgba(18,10,4,0.84)" }}>
                         {ex.sets}×{ex.reps}
                       </span>
                       {ex.progressTag === "up" && (
@@ -2234,7 +2234,7 @@ export default function FitApp() {
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "10px 18px 6px" }}>
                     {[
                       { val: "easy", color: C.mintDark, bg: C.mint, label: t.workout.easy },
-                      { val: "moderate", color: C.accent, bg: C.accentLight, label: t.workout.moderate },
+                      { val: "moderate", color: "rgba(18,10,4,0.84)", bg: C.accentLight, label: t.workout.moderate },
                       { val: "hard", color: "#C45A6A", bg: C.rose, label: t.workout.hard },
                     ].map(r => {
                       const active = ex.rpe === r.val;
@@ -2646,5 +2646,5 @@ const styles = {
   videoBtn: { display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: C.dark, border: "none", borderRadius: C.rPill, color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", marginTop: 14, cursor: "pointer", fontFamily: F, boxShadow: C.shadow },
   cyclePhases: { display: "flex", gap: 6, marginTop: 12 },
   cyclePhaseItem: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", borderRadius: 14, background: C.bg, color: C.textMuted, transition: "all 0.2s", fontWeight: 700 },
-  cyclePhaseActive: { background: C.accentLight, color: C.accent },
+  cyclePhaseActive: { background: C.accentLight, color: "rgba(18,10,4,0.84)" },
 };
