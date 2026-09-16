@@ -1741,7 +1741,6 @@ export default function FitApp() {
               </div>
             </div>
 
-            <img src="/hero.png" alt="" style={{ width: "110%", marginLeft: "-5%", height: "auto", display: "block", marginBottom: 20 }} />
 
             {currentWorkout ? (
               <button onClick={() => { if (!workoutStartTime) setWorkoutStartTime(Date.now()); navigateView("workout"); }} style={s.generateBtn}>
