@@ -1,18 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-import {
-  EXERCISE_LIBRARY, ACCESSORY_LIBRARY, EQUIPMENT_OPTIONS,
-  MUSCLE_GROUPS, GROUP_COLORS, NAMES_EN, KEY_LIFT_EXERCISES,
-  getExerciseGifUrl,
-} from "./exercises.js";
-
-import {
-  generateWorkout, getCycleInfo, getRecoveryStatus,
-  getExerciseHistory, getStrengthHistory, getWeeklyVolume,
-  getExerciseAlternatives, calcProgression, getLastPerformance,
-  WEEK_CONFIGS, VOLUME_TARGETS,
-} from "./workout.js";
-
 const I = (d, size = 24, stroke = "currentColor") => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: "block", flexShrink: 0 }}><path d={d}/></svg>
 );
@@ -38,6 +25,19 @@ const IC = {
   heart: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z",
 };
 
+const MUSCLE_GROUPS = ["Prsa", "Záda", "Ramena", "Biceps", "Triceps", "Nohy", "Core", "Hýždě"];
+
+const GROUP_COLORS = {
+  Prsa:    { bg: "#FFE0E0", text: "#B85454" },
+  Záda:    { bg: "#DCE8FF", text: "#5472A8" },
+  Ramena:  { bg: "#FFE8D4", text: "#B87A4E" },
+  Biceps:  { bg: "#E8DCFF", text: "#7A54B8" },
+  Triceps: { bg: "#DCFFE8", text: "#4EA87A" },
+  Nohy:    { bg: "#FFF4DC", text: "#B8A04E" },
+  Core:    { bg: "#FFD4E8", text: "#B8547A" },
+  Hýždě:  { bg: "#D4F0FF", text: "#4E8EB8" },
+};
+
 const EQ_ICONS = {
   barbell: "M2 12h4m12 0h4M6 8v8M18 8v8M6.5 6.5l11 11",
   dumbbells: "M5 9v6m14-6v6M3 10v4h4v-4H3zm14 0v4h4v-4h-4zM7 12h10",
@@ -49,6 +49,284 @@ const EQ_ICONS = {
   bands: "M6 12a6 6 0 1012 0 6 6 0 00-12 0zM9 12a3 3 0 106 0 3 3 0 00-6 0z",
   bodyweight: "M12 11a3 3 0 100-6 3 3 0 000 6zM12 14v7M8 21h8",
   kettlebell: "M9 7a3 3 0 106 0 3 3 0 00-6 0zM8 10a5 5 0 0 0 0 8h8a5 5 0 000-8",
+};
+const EQUIPMENT_OPTIONS = [
+  { id: "barbell", label: "Činka (barbell)" },
+  { id: "dumbbells", label: "Jednoručky" },
+  { id: "bench", label: "Lavička" },
+  { id: "rack", label: "Stojan/Rack" },
+  { id: "cables", label: "Kladky/Kabely" },
+  { id: "machines", label: "Stroje" },
+  { id: "pullup_bar", label: "Hrazda" },
+  { id: "bands", label: "Gumy" },
+  { id: "bodyweight", label: "Vlastní váha" },
+  { id: "kettlebell", label: "Kettlebell" },
+];
+
+const KEY_LIFT_EXERCISES = ["Bench press", "Dřep (squat)", "Mrtvý tah", "Tlaky nad hlavu", "Bent-over row"];
+
+const EXERCISE_LIBRARY = {
+  Prsa: [
+    { name: "Bench press", equipment: ["barbell", "bench", "rack"], difficulty: "intermediate", type: "compound", movementPattern: "horizontal_push", muscles: "Prsa, triceps, přední ramena",
+      desc: "Základní tlakový cvik na prsa s činkou na lavičce.",
+      howTo: ["Lehni si na lavičku, chodidla pevně na zemi, hýždě a lopatky přitisknuté", "Uchop činku o něco šířeji než ramena, palce kolem tyče", "Stáhni lopatky k sobě a dolů — vytvoř pevný základ", "Nadechni se, spusť činku kontrolovaně k dolní části hrudníku", "Vytlač nahoru do plného napnutí, vydechni nahoře"],
+      mistakes: ["Odlepování hýždí od lavičky — ztrácíš stabilitu", "Odsazování (bouncing) činky od hrudníku — ztráta kontroly", "Lokty příliš od těla (90°) — riziko pro ramena, drž ~75°"] },
+    { name: "Bench press s jednoručkami", equipment: ["dumbbells", "bench"], difficulty: "intermediate", type: "compound", movementPattern: "horizontal_push", muscles: "Prsa, triceps, přední ramena, stabilizátory",
+      desc: "Bench press s jednoručkami pro větší rozsah pohybu.",
+      howTo: ["Sedni si na lavičku s jednoručkami na stehnech, lehni si a zvedni je nad prsa", "Drž jednoručky tak, aby palce směřovaly k sobě", "Spouštěj kontrolovaně dolů, lokty pod úhlem ~45° od těla", "Dole ucítíš natažení prsou, pak vytlač nahoru", "Nahoře jednoručky nesrážej — zastavuj těsně před dotykem"],
+      mistakes: ["Příliš těžké jednoručky — ztráta kontroly hned na začátku", "Prohýbání zad — drž lopatky stažené", "Nerovnoměrné tempo — obě ruce stejně"] },
+    { name: "Kliky", equipment: ["bodyweight"], difficulty: "beginner", type: "compound", movementPattern: "horizontal_push", noWeight: true, muscles: "Prsa, triceps, přední ramena, core",
+      desc: "Klasický cvik s vlastní vahou na prsa a paže.",
+      howTo: ["Ruce na zem na šířku ramen, prsty směřují dopředu", "Tělo v rovné linii od hlavy po paty — nezvedej hýždě", "Spusť hrudník ke 2-3 cm od země, lokty ~45° od těla", "Vytlač se zpět nahoru do plného napnutí", "Lehčí varianta: kliky na kolenou se stejnou technikou"],
+      mistakes: ["Prohnutá záda — zpevni břicho jako bys čekala ránu", "Hlava visí dolů — dívej se na zem kousek před rukama", "Poloviční rozsah — jdi opravdu dolů, jinak cvičíš napůl"] },
+    { name: "Rozpažky s jednoručkami", equipment: ["dumbbells", "bench"], difficulty: "intermediate", type: "isolation", movementPattern: "isolation", muscles: "Prsa (natažení), přední ramena",
+      desc: "Izolační cvik zaměřený na natažení a kontrakci prsou.",
+      howTo: ["Na lavičce drž jednoručky nad hrudníkem, dlaně k sobě", "Mírně pokrč lokty a tento úhel drž po celý pohyb", "Rozpažuj do stran, dokud neucítíš natažení prsou", "Zastav na úrovni ramen — ne níž!", "Stáhni zpět nahoru obloukem, jako bys objímala strom"],
+      mistakes: ["Rovné lokty — vždycky mírně pokrčené, jinak trpí klouby", "Příliš hluboký rozsah — stačí na úroveň ramen", "Moc těžké — tohle je cvik na kontrolu, ne na maximální váhu"] },
+    { name: "Cable crossover", equipment: ["cables"], difficulty: "intermediate", type: "isolation", movementPattern: "isolation", muscles: "Prsa (vnitřní část), přední ramena",
+      desc: "Izolační cvik na kladkách pro vytvarování prsou.",
+      howTo: ["Stůj mezi dvěma horními kladkami, úchopy v rukou", "Nakroč jednou nohou dopředu pro stabilitu, mírný předklon", "Táhni ruce před sebe a dolů v oblouku — lokty lehce pokrčené", "Dole stiskni prsa k sobě na 1 sekundu", "Pomalu vracej zpět, kontroluj pohyb"],
+      mistakes: ["Příliš rychlý pohyb — pomalá negativní fáze je klíčová", "Pohyb z ramen místo z prsou — soustřeď se na stisk prsou", "Přílišná váha — tohle je cvik na pocit, ne na sílu"] },
+    { name: "Šikmý bench press", equipment: ["dumbbells", "bench"], difficulty: "intermediate", type: "compound", movementPattern: "horizontal_push", muscles: "Horní prsa, přední ramena, triceps",
+      desc: "Bench press na šikmé lavičce pro horní část prsou.",
+      howTo: ["Nastav lavičku na 30-45° (ne víc, jinak to přebírají ramena)", "S jednoručkami lehni na lavičku, chodidla na zemi", "Drž jednoručky nad horní částí hrudníku", "Spouštěj ke klíčním kostem, lokty ~45° od těla", "Vytlač nahoru, soustřeď se na horní prsa"],
+      mistakes: ["Lavička příliš šikmo (nad 45°) — cvičíš ramena místo prsou", "Stejné chyby jako u bench pressu — lopatky stažené!", "Jednoručky se kývou — zpevni zápěstí"] },
+    { name: "Chest press na stroji", equipment: ["machines"], difficulty: "beginner", type: "compound", movementPattern: "horizontal_push", muscles: "Prsa, triceps, přední ramena",
+      desc: "Bezpečná alternativa bench pressu na stroji.",
+      howTo: ["Nastav sedátko tak, aby úchopy byly na úrovni středu hrudníku", "Sedni si, záda přitiskni k opěrce, chodidla na zemi", "Uchop madla, tlač dopředu do plného napnutí", "Pomalu vracej zpět — kontroluj celý pohyb", "Nedovírej úplně — drž napětí v prsou"],
+      mistakes: ["Špatná výška sedátka — úchopy musí být na úrovni prsou", "Odlepování zad od opěrky", "Používání hybnosti — pomalý, kontrolovaný pohyb"] },
+    { name: "Diamantové kliky", equipment: ["bodyweight"], difficulty: "advanced", type: "compound", movementPattern: "horizontal_push", noWeight: true, muscles: "Triceps, vnitřní prsa, přední ramena",
+      desc: "Pokročilá varianta kliků s důrazem na triceps.",
+      howTo: ["Ruce na zem blízko u sebe — palce a ukazováčky tvoří trojúhelník (diamant)", "Tělo v rovné linii, core zpevněný", "Spusť hrudník k rukám, lokty jdou podél těla dozadu", "Vytlač se zpět nahoru", "Příliš těžké? Začni na kolenou"],
+      mistakes: ["Lokty do stran — musí jít dozadu podél těla", "Slabé zápěstí — pokud bolí, dej ruce na pěsti", "Příliš rychlé opakování — pomalý pohyb dolů"] },
+  ],
+  Záda: [
+    { name: "Shrágy", equipment: ["barbell", "dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Trapézy (horní část)",
+      desc: "Jednoduchý cvik na horní trapézy.",
+      howTo: ["Stůj s činkou/jednoručkami podél těla, ramena stažená dolů", "Zvedni ramena přímo nahoru k uším — jako bys krčila rameny", "Nahoře na sekundu vydrž a stiskni trapézy", "Pomalu spusť zpět dolů", "Nekruž rameny — pohyb je jen nahoru a dolů"],
+      mistakes: ["Krouživý pohyb ramen — zbytečné a riskantní pro klouby", "Příliš těžká váha a kývání tělem", "Ohýbání loktů — ruce jsou jen háky, práci dělají trapézy"] },
+    { name: "Přítahy na kladce", equipment: ["cables"], difficulty: "beginner", type: "compound", movementPattern: "vertical_pull", muscles: "Široký sval zádový (lats), biceps, zadní ramena",
+      desc: "Přítahy shora na kladce — skvělý úvod k shybům.",
+      howTo: ["Sedni si, stehna zajištěná pod polštáři, chodidla na zemi", "Uchop tyč širokým nadhmatem (širší než ramena)", "Zatáhni lopatky dolů a k sobě, prsa vystrč dopředu", "Táhni tyč k horní části hrudníku, lokty směřují dolů a dozadu", "Pomalu vracej nahoru s kontrolou — nepouštěj naráz"],
+      mistakes: ["Tahání rukama místo zády — soustřeď se na lopatky", "Záklony trupu — mírný záklon OK, velký ne", "Tyč za hlavu — tahej k hrudníku, za hlavu trpí ramena"] },
+    { name: "Bent-over row", equipment: ["barbell"], difficulty: "intermediate", type: "compound", movementPattern: "horizontal_pull", muscles: "Střed zad, lats, trapézy, biceps, zadní ramena",
+      desc: "Klíčový compound cvik na celá záda v předklonu.",
+      howTo: ["Stůj s činkou, nohy na šířku ramen, kolena lehce pokrčená", "Předkloň se v bocích do ~45°, rovná záda — jako stůl", "Činku nech viset s nataženými pažemi", "Táhni činku k pupku, lokty jdou dozadu těsně kolem těla", "Nahoře stiskni lopatky k sobě, pomalu spusť"],
+      mistakes: ["Kulatá záda — NEBEZPEČNÉ! Záda musí být rovná", "Zvedání trupu u každého opakování (kývání)", "Tahání bicepsy — soustřeď se na lokty dozadu, ne ruce nahoru"] },
+    { name: "Jednoruční přítah", equipment: ["dumbbells", "bench"], difficulty: "beginner", type: "compound", movementPattern: "horizontal_pull", muscles: "Lats, střed zad, biceps",
+      desc: "Jednoruční přítah na lavičce — skvělý pro začátečníky.",
+      howTo: ["Koleno a ruku jedné strany polož na lavičku — opora", "Druhou rukou uchop jednoručku, záda rovně, rovnoběžně se zemí", "Táhni jednoručku k boku (k pupku), loket jde nahoru a dozadu", "Nahoře stiskni záda na sekundu", "Pomalu spusť, napni celý rozsah, pak opakuj"],
+      mistakes: ["Rotace trupu — trup musí zůstat rovný, pohybuje se jen ruka", "Táhnutí k hrudníku místo k boku", "Příliš rychlé trhaní — pomalý kontrolovaný pohyb"] },
+    { name: "Shyby", equipment: ["pullup_bar"], difficulty: "advanced", type: "compound", movementPattern: "vertical_pull", noWeight: true, muscles: "Lats, biceps, střed zad, předloktí",
+      desc: "Král cviků na záda — přítahy vlastní váhy na hrazdě.",
+      howTo: ["Uchop hrazdu nadhmatem (dlaně od tebe), šířeji než ramena", "Ze svisu se zatáhni nahoru — bradou nad hrazdu", "Táhni lokty dolů a dozadu, prsa k hrazdě", "Pomalu se spouštěj zpět do plného svisu", "Nezvládáš? Použij gumu na pomoc nebo negativ (jen spouštění)"],
+      mistakes: ["Kývání a švihání — pohyb musí být čistý, kontrolovaný", "Poloviční rozsah — jdi opravdu nahoru (brada nad) a dolů (plný svis)", "Kulatá ramena nahoře — vytáhni hrudník k hrazdě"] },
+    { name: "Lat pulldown", equipment: ["machines"], difficulty: "beginner", type: "compound", movementPattern: "vertical_pull", muscles: "Lats, biceps, střed zad",
+      desc: "Strojová alternativa shybů — příprava na shyby.",
+      howTo: ["Sedni si, stehna pod polštáři, uchop tyč široce nadhmatem", "Vystrč hrudník dopředu, mírný záklon v trupu", "Táhni tyč k horní části hrudníku, lokty dolů a dozadu", "Stiskni lopatky k sobě dole", "Pomalu vracej — kontroluj váhu, nepouštěj ji"],
+      mistakes: ["Tahání za hlavu — tahej k hrudníku!", "Příliš velký záklon trupu — max 10-15°", "Pouštění váhy nahoru bez kontroly"] },
+    { name: "Seated row", equipment: ["cables", "machines"], difficulty: "beginner", type: "compound", movementPattern: "horizontal_pull", muscles: "Střed zad, lats, trapézy, biceps",
+      desc: "Veslování vsedě na kladce pro střed zad.",
+      howTo: ["Sedni si, nohy opřené o desku, kolena lehce pokrčená", "Uchop madlo, záda rovně, hrudník vystrčený", "Táhni madlo k břichu, lokty těsně podél těla dozadu", "Stiskni lopatky nahoře na sekundu", "Pomalu vracej — nech záda pracovat v natažení"],
+      mistakes: ["Houpání trupu dopředu a dozadu — trup zůstává stabilní", "Kulatá záda při vracení — drž prsa vystrčená", "Tahání z bicepsů — mysli na lokty dozadu"] },
+    { name: "T-bar row", equipment: ["barbell"], difficulty: "intermediate", type: "compound", movementPattern: "horizontal_pull", muscles: "Střed zad, lats, trapézy, biceps",
+      desc: "Silové veslování s jedním koncem činky zapřeným do rohu.",
+      howTo: ["Zapři jeden konec činky do rohu nebo do T-bar držáku", "Obkroč činku, předkloň se, rovná záda", "Uchop činku oběma rukama (nebo V-madlem) blízko závaží", "Táhni k hrudníku, lokty dozadu a nahoru", "Kontrolovaně spusť, drž záda rovně celou dobu"],
+      mistakes: ["Kulatá záda — stejné riziko jako u bent-over row", "Zvedání celého trupu — pohyb je v pažích a lopatkách", "Příliš úzký nebo široký stoj — nohy na šířku ramen"] },
+  ],
+  Ramena: [
+    { name: "Tlaky nad hlavu", equipment: ["barbell", "rack"], difficulty: "intermediate", type: "compound", movementPattern: "vertical_push", muscles: "Přední a střední ramena, triceps, horní hrudník",
+      desc: "Hlavní compound cvik na ramena s činkou ve stoji.",
+      howTo: ["Uchop činku na šířku ramen, ve stoji nebo ze stojanu", "Činku drž na horní části hrudníku, lokty lehce před činkou", "Zpevni core a hýždě — celé tělo je stabilní sloup", "Tlač činku přímo nahoru nad hlavu, hlavu lehce ucouvni", "Nahoře plně napni paže, činku drž nad středem hlavy"],
+      mistakes: ["Prohýbání zad — zpevni břicho a hýždě!", "Tlačení šikmo dopředu — dráha je přímo nahoru", "Příliš široký úchop — šířka ramen stačí"] },
+    { name: "Tlaky s jednoručkami", equipment: ["dumbbells"], difficulty: "beginner", type: "compound", movementPattern: "vertical_push", muscles: "Přední a střední ramena, triceps, stabilizátory",
+      desc: "Tlaky nad hlavu s jednoručkami — vsedě nebo ve stoji.",
+      howTo: ["Sedni si na lavičku (s opěrkou) nebo stůj, jednoručky v rukou", "Zvedni jednoručky na úroveň uší, lokty pod zápěstími", "Tlač obě jednoručky nahoru nad hlavu", "Nahoře plně napni, ale nesrážej jednoručky", "Pomalu spouštěj zpět k uším"],
+      mistakes: ["Kývání trupem — zvlášť ve stoji, zpevni core", "Jednoručky příliš vpředu — drž je nad rameny", "Nerovnoměrné tlačení — slabší strana diktuje tempo"] },
+    { name: "Upažování", equipment: ["dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Střední ramena (deltoid)",
+      desc: "Izolační cvik na střední deltoidy — tvar ramen.",
+      howTo: ["Stůj s jednoručkami podél těla, mírně pokrč lokty", "Zvedej jednoručky do stran na úroveň ramen — ne výš", "Představ si, že vyléváš čaj z konvičky (malíček jde lehce nahoru)", "Nahoře na moment zadrž", "Pomalu spouštěj — ne padáním, ale aktivním spouštěním"],
+      mistakes: ["Příliš těžké jednoručky a kývání — tohle je cvik na preciznost", "Zvedání ramen k uším (trapézy přebírají) — ramena dolů!", "Zvedání nad úroveň ramen — zbytečné a riskantní"] },
+    { name: "Face pulls", equipment: ["cables", "bands"], difficulty: "beginner", type: "isolation", movementPattern: "horizontal_pull", muscles: "Zadní ramena, rotátorová manžeta, střední trapézy",
+      desc: "Klíčový cvik pro zdraví ramen a prevenci zranění.",
+      howTo: ["Nastav kladku do výšky obličeje, uchop lano oběma rukama", "Odstup od kladky, paže natažené před sebou", "Táhni lano k obličeji, lokty jdou do stran a dozadu", "V konečné pozici ruce vedle uší, lopatky stisknuté", "Pomalu vracej — tohle je cvik na kvalitu, ne na váhu"],
+      mistakes: ["Příliš těžká váha — tohle je korekční cvik, ne silový", "Tahání k hrudi místo k obličeji", "Lokty dole — musí jít do stran na úroveň ramen"] },
+    { name: "Arnold press", equipment: ["dumbbells"], difficulty: "intermediate", type: "compound", movementPattern: "vertical_push", muscles: "Přední a střední ramena, triceps",
+      desc: "Rotační tlak od Arnolda Schwarzeneggera — zapojí celý deltoid.",
+      howTo: ["Sedni si, jednoručky před obličejem, dlaně k sobě (jako horní pozice curlu)", "Současně rotuj dlaněmi ven a tlač jednoručky nad hlavu", "Nahoře dlaně směřují dopředu, paže plně natažené", "Při spouštění rotuj zpět — dlaně se vrací k sobě", "Celý pohyb je plynulý, jako jeden oblouk"],
+      mistakes: ["Trhavý pohyb — rotace a tlak musí být plynulé", "Rychlé spouštění — negativní fáze je důležitá", "Prohýbání zad — zpevni core"] },
+    { name: "Předpažování", equipment: ["dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Přední ramena (přední deltoid)",
+      desc: "Izolační cvik na přední deltoidy.",
+      howTo: ["Stůj s jednoručkami před stehny, dlaně k tělu", "Zvedni jednu nebo obě jednoručky před sebe na úroveň ramen", "Paže jsou mírně pokrčené v loktech", "Nahoře na moment zadrž", "Pomalu spouštěj zpět"],
+      mistakes: ["Kývání trupem — stůj pevně, jen paže se pohybují", "Zvedání výš než ramena — zbytečné", "Příliš rychlé opakování — pomalá a kontrolovaná práce"] },
+  ],
+  Biceps: [
+    { name: "Bicepsový curl", equipment: ["barbell", "dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Biceps (obě hlavy)",
+      desc: "Základní izolační cvik na biceps.",
+      howTo: ["Stůj s činkou/jednoručkami v rukou, paže podél těla", "Lokty přitiskni k bokům — tady zůstanou po celou dobu!", "Ohýbej ruce v loktech nahoru, zatni biceps", "Nahoře stiskni na sekundu", "Pomalu spouštěj dolů — neházej váhou"],
+      mistakes: ["Pohyb loktů dopředu — lokty jsou přilepené k bokům", "Kývání trupem pro pomoc — stůj rovně, pracuje jen biceps", "Houpání váhy — když musíš kývat, váha je moc těžká"] },
+    { name: "Hammer curl", equipment: ["dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Biceps (dlouhá hlava), brachialis, předloktí",
+      desc: "Curl s neutrálním úchopem pro biceps a předloktí.",
+      howTo: ["Jednoručky podél těla, dlaně k sobě (palce nahoru) — kladívko", "Ohýbej ruce nahoru, úchop se nemění — palce zůstávají nahoře", "Lokty přitisknuté k bokům", "Nahoře zadrž a stiskni", "Pomalu dolů — střídej ruce nebo obě naráz"],
+      mistakes: ["Rotace zápěstí — dlaně musí směřovat k sobě celou dobu", "Stejné chyby jako u klasického curlu — lokty u těla, bez kývání"] },
+    { name: "Concentration curl", equipment: ["dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Biceps (maximální izolace)",
+      desc: "Maximálně izolovaný curl vsedě s oporou o stehno.",
+      howTo: ["Sedni si na lavičku, nohy široce od sebe", "Opři loket pracovní ruky o vnitřní stranu stehna", "S jednoručkou v ruce ohýbej loket nahoru", "Nahoře stiskni biceps na 1-2 sekundy", "Pomalu spouštěj dolů — plné natažení"],
+      mistakes: ["Zvedání lokte od stehna — loket musí být pevně opřený", "Kývání tělem — pohybuje se jen předloktí", "Příliš rychlé opakování — tohle je cvik na soustředění"] },
+    { name: "Cable curl", equipment: ["cables"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Biceps",
+      desc: "Curl na spodní kladce — konstantní napětí po celý pohyb.",
+      howTo: ["Stůj čelem ke spodní kladce, uchop tyč nebo lano", "Lokty přitiskni k bokům, stůj vzpřímeně", "Ohýbej ruce nahoru, stiskni biceps nahoře", "Pomalu spouštěj — kladka udržuje napětí i dole", "Výhoda oproti činku: napětí v celém rozsahu"],
+      mistakes: ["Odstupování od kladky — stůj blízko, stabilní pozice", "Kývání lokty — jako u všech curlů, lokty u těla"] },
+    { name: "Chin-upy", equipment: ["pullup_bar"], difficulty: "advanced", type: "compound", movementPattern: "vertical_pull", noWeight: true, muscles: "Biceps, lats, střed zad",
+      desc: "Shyby podhmatem — compound cvik na biceps a záda.",
+      howTo: ["Uchop hrazdu podhmatem (dlaně k sobě), na šířku ramen", "Ze svisu se táhni nahoru — bradou nad hrazdu", "Soustřeď se na stahování loktů dolů k bokům", "Pomalu se spouštěj zpět do plného svisu", "Nezvládáš? Guma na pomoc nebo negativ (jen se spouštěj pomalu)"],
+      mistakes: ["Kývání — stejné jako u shybů, čistý pohyb", "Poloviční rozsah — plný svis dole, brada nad hrazdu nahoře", "Příliš široký úchop — podhmat na šířku ramen"] },
+  ],
+  Triceps: [
+    { name: "Tricepsové kliky na lavičce", equipment: ["bench", "bodyweight"], difficulty: "beginner", type: "compound", movementPattern: "horizontal_push", noWeight: true, muscles: "Triceps, přední ramena, prsa",
+      desc: "Kliky s rukama za zády opřenými o lavičku.",
+      howTo: ["Ruce za zády na hranu lavičky, prsty dopředu, na šířku ramen", "Nohy natažené dopředu (těžší) nebo pokrčené (lehčí)", "Spouštěj se dolů ohýbáním v loktech — lokty jdou dozadu, ne do stran", "Zastav když lokty jsou v 90°", "Vytlač se zpět nahoru silou tricepsu"],
+      mistakes: ["Lokty do stran — musí jít přímo dozadu!", "Příliš hluboký rozsah — nepřekračuj 90° v loktech, trpí ramena", "Prohnutá záda — drž hýždě blízko lavičky"] },
+    { name: "Francouzský tlak", equipment: ["barbell", "bench"], difficulty: "intermediate", type: "isolation", movementPattern: "isolation", muscles: "Triceps (dlouhá hlava)",
+      desc: "Ležíš na lavičce a spouštíš činku za hlavu — izolace tricepsu.",
+      howTo: ["Lehni si na lavičku, činku drž nad hrudníkem, úzký úchop", "Paže jsou svisle — tady začínáš", "Ohýbej POUZE v loktech — spouštěj činku za hlavu/ke čelu", "Lokty zůstávají na místě, nesměřují do stran!", "Napni triceps a vrať činku zpět nahoru"],
+      mistakes: ["Pohyb loktů dopředu/dozadu — lokty jsou pevné, pohybuje se jen předloktí", "Lokty se rozevírají do stran — drž je na šířku ramen", "Příliš těžká váha — tohle zatěžuje lokty, buď opatrná"] },
+    { name: "Triceps pushdown", equipment: ["cables"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Triceps (všechny hlavy)",
+      desc: "Tlaky na triceps na horní kladce — základní izolace.",
+      howTo: ["Stůj čelem k horní kladce, uchop tyč nebo lano", "Lokty přitiskni k bokům, předloktí vodorovně", "Tlač dolů do plného napnutí paží — stiskni triceps", "Pomalu vracej zpět do 90° v loktech — ne výš!", "Lokty se nehýbou — jen předloktí"],
+      mistakes: ["Lokty se odlepují od boků — přilep je a pohybuj jen předloktím", "Naklánění nad kladku — stůj vzpřímeně", "Příliš velký rozsah nahoru — zastavuj na 90°"] },
+    { name: "Kickback", equipment: ["dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Triceps",
+      desc: "Kopy s jednoručkou za sebe v předklonu.",
+      howTo: ["Předkloň se, jednou rukou se opři o lavičku nebo koleno", "Loket pracovní ruky zvedni nahoru podél těla (nadloktí rovnoběžně se zemí)", "Z této pozice natáhni předloktí dozadu — napni triceps", "Nahoře zadrž a stiskni na 1 sekundu", "Pomalu pokrč zpět, nadloktí se nehýbe"],
+      mistakes: ["Nadloktí padá dolů — musí být celou dobu rovnoběžně se zemí", "Švihání — pomalý kontrolovaný pohyb", "Příliš těžká váha — kickback je o přesnosti"] },
+    { name: "Úzké kliky", equipment: ["bodyweight"], difficulty: "intermediate", type: "compound", movementPattern: "horizontal_push", noWeight: true, muscles: "Triceps, vnitřní prsa",
+      desc: "Kliky s úzkým postavením rukou — zaměření na triceps.",
+      howTo: ["Kliková pozice, ale ruce blíž k sobě (pod rameny nebo užší)", "Tělo v rovné linii, core zpevněný", "Spouštěj se dolů — lokty jdou dozadu podél těla, ne do stran", "Hrudník ke 2-3 cm od země", "Vytlač se zpět nahoru"],
+      mistakes: ["Lokty do stran — musí podél těla dozadu", "Příliš úzký úchop (bolest zápěstí) — stačí pod ramena", "Prohnutá záda — zpevni core"] },
+    { name: "Overhead triceps extension", equipment: ["dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Triceps (dlouhá hlava)",
+      desc: "Jednoručka za hlavou — natahuj ruce nahoru pro triceps.",
+      howTo: ["Stůj nebo sedni, jednoručku drž oběma rukama za hlavou", "Nadloktí směřují přímo nahoru k stropu — a tady zůstanou!", "Natahuj předloktí nahoru do plného napnutí", "Nahoře stiskni triceps", "Pomalu spouštěj za hlavu — jen ohyb v loktech"],
+      mistakes: ["Nadloktí se kýve dopředu/dozadu — musí být stabilní svisle", "Lokty jdou do stran — drž je blízko hlavy", "Prohýbání zad — zpevni core, vsedě je to jednodušší"] },
+  ],
+  Nohy: [
+    { name: "Dřep (squat)", equipment: ["barbell", "rack"], difficulty: "intermediate", type: "compound", movementPattern: "squat", muscles: "Quadriceps, hamstringy, hýždě, core",
+      desc: "Král cviků — compound pohyb na celý spodek těla.",
+      howTo: ["Činku polož na horní trapézy (ne na krk!), uchop šířeji než ramena", "Nohy na šířku ramen nebo lehce šířeji, špičky lehce ven", "Nadechni se, zpevni core, začni pohyb tím, že tlačíš hýždě dozadu", "Dřepni alespoň do rovnoběžky stehen se zemí (hlouběji = lepší)", "Vytlač se zpět nahoru, tlač kolena nad špičky, nevychyluj je dovnitř"],
+      mistakes: ["Kolena padají dovnitř — tlač je aktivně ven nad špičky", "Kulatá záda — hrudník nahoru, core zpevněný", "Zvedání pat — celá plocha chodidla na zemi, může pomoci podpatek"] },
+    { name: "Goblet squat", equipment: ["dumbbells", "kettlebell"], difficulty: "beginner", type: "compound", movementPattern: "squat", muscles: "Quadriceps, hýždě, core",
+      desc: "Dřep se závažím u hrudi — perfektní pro učení techniky.",
+      howTo: ["Drž jednoručku nebo kettlebell vertikálně u hrudi oběma rukama", "Nohy na šířku ramen nebo šířeji, špičky ven", "Dřepni hluboko — lokty jdou mezi kolena", "Závaží u hrudi automaticky udržuje rovnou záda", "Vytlač se zpět nahoru, kolena nad špičky"],
+      mistakes: ["Závaží daleko od těla — drž těsně u hrudníku", "Zvedání pat — celá plocha chodidla", "Mělký dřep — využij výhodu goblet pozice a jdi hluboko"] },
+    { name: "Mrtvý tah", equipment: ["barbell"], difficulty: "advanced", type: "compound", movementPattern: "hip_hinge", muscles: "Hamstringy, hýždě, záda, core, trapézy — celé tělo",
+      desc: "Nejtěžší compound cvik — zvednutí činky ze země.",
+      howTo: ["Činku na zem, stůj s chodidly pod činkou (střed chodidla pod tyčí)", "Předkloň se — uchop činku na šířku ramen, rovná záda!", "Nadechni se, zpevni celé tělo, hrudník nahoru", "Zvedej tažením nohou a zad současně — tyč jede podél nohou", "Nahoře se napřim, stiskni hýždě, ramena stažená dozadu"],
+      mistakes: ["Kulatá záda — NEJČASTĚJŠÍ a NEJNEBEZPEČNĚJŠÍ chyba!", "Tyč daleko od těla — musí jet podél holení a stehen", "Zvedání hýždí dřív než ramen — záda a nohy pracují současně"] },
+    { name: "Rumunský mrtvý tah", equipment: ["barbell", "dumbbells"], difficulty: "intermediate", type: "compound", movementPattern: "hip_hinge", muscles: "Hamstringy, hýždě, spodní záda",
+      desc: "Mrtvý tah s důrazem na hamstringy — předklon s mírně pokrčenými koleny.",
+      howTo: ["Stůj s činkou/jednoručkami před stehny, nohy na šířku boků", "Kolena mírně pokrč — a takhle je nech po celou dobu!", "Předkláněj se v bocích, hýždě tlač dozadu — závaží jede podél nohou", "Jdi dolů, dokud ucítíš výrazné natažení v hamstringách", "Stiskni hýždě a vrať se nahoru — záda rovná celou dobu"],
+      mistakes: ["Kulatá záda — záda musí být rovná, pohyb je v bocích", "Propínání a ohýbání kolen — kolena jsou fixně lehce pokrčená", "Příliš hluboké spouštění — jdi jen do natažení hamstringů"] },
+    { name: "Výpady", equipment: ["dumbbells", "bodyweight"], difficulty: "beginner", type: "compound", movementPattern: "squat", muscles: "Quadriceps, hýždě, hamstringy",
+      desc: "Krokové výpady vpřed nebo na místě.",
+      howTo: ["Stůj vzpřímeně, jednoručky v rukou (nebo bez závaží)", "Udělej krok dopředu, délka kroku asi 1 metr", "Spouštěj se dolů — obě kolena se ohýbají do 90°", "Zadní koleno téměř k zemi, přední koleno nad špičkou", "Odraz z přední nohy zpět do stoje, opakuj druhou nohou"],
+      mistakes: ["Koleno přední nohy přes špičku — krok musí být dostatečně dlouhý", "Úzká stopa — představ si dvě koleje, ne lano", "Naklánění dopředu — trup vzpřímený"] },
+    { name: "Leg press", equipment: ["machines"], difficulty: "beginner", type: "compound", movementPattern: "squat", muscles: "Quadriceps, hýždě, hamstringy",
+      desc: "Bezpečná strojová alternativa dřepu.",
+      howTo: ["Sedni si do stroje, záda a hýždě pevně na sedátku", "Nohy na plošinu na šířku ramen, špičky lehce ven", "Odjisti zarážku, spouštěj plošinu dolů ohýbáním kolen", "Kolena jdou k hrudníku — ne dovnitř!", "Tlač zpět nahoru, ale NEZAMYKEJ kolena nahoře"],
+      mistakes: ["Hýždě se odlepují od sedátka — zmenši rozsah", "Zamykání kolen nahoře — NEBEZPEČNÉ! Nech lehce pokrčená", "Kolena dovnitř — tlač je ven nad špičky"] },
+    { name: "Leg curl", equipment: ["machines"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Hamstringy",
+      desc: "Izolace hamstringů na stroji — ohýbání nohou.",
+      howTo: ["Lehni si na stroj na břicho, polštář těsně nad patami", "Uchop madla pro stabilitu", "Ohýbej nohy nahoru ke hýždím — stiskni hamstringy nahoře", "Pomalu spouštěj zpět, kontroluj váhu", "Nedopadej úplně dolů — drž napětí"],
+      mistakes: ["Zvedání boků od podložky — boky musí zůstat přilepené", "Příliš rychlý pohyb — pomalá negativní fáze", "Neúplný rozsah — jdi nahoru co nejvíc"] },
+    { name: "Leg extension", equipment: ["machines"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Quadriceps",
+      desc: "Izolace quadricepsu na stroji — natahování nohou.",
+      howTo: ["Sedni si, záda opřená, polštář na přední straně holení (nad kotníky)", "Uchop madla po stranách", "Natahuj nohy dopředu do plného napnutí", "Nahoře stiskni quadriceps na 1 sekundu", "Pomalu spouštěj — kontroluj celý pohyb"],
+      mistakes: ["Zvedání hýždí ze sedátka", "Příliš rychlé pouštění váhy", "Trhání na začátku pohybu — plynulý start"] },
+    { name: "Bulharské dřepy", equipment: ["dumbbells", "bench"], difficulty: "intermediate", type: "compound", movementPattern: "squat", muscles: "Quadriceps, hýždě, hamstringy, stabilizátory",
+      desc: "Jednonožní dřep se zadní nohou na lavičce — skvělý pro hýždě.",
+      howTo: ["Stůj zády k lavičce, polož nárt zadní nohy na lavičku", "Přední noha asi krok před lavičkou", "Dřepni na přední noze dolů — zadní koleno ke k zemi", "Přední koleno nad špičkou, trup vzpřímený", "Vytlač se zpět nahoru silou přední nohy"],
+      mistakes: ["Příliš blízko lavičky — potřebuješ prostor pro dřep", "Naklánění dopředu — trup rovně", "Koleno přední nohy padá dovnitř — tlač ven"] },
+  ],
+  Core: [
+    { name: "Plank", equipment: ["bodyweight"], difficulty: "beginner", type: "isolation", movementPattern: "core", noWeight: true, isHold: true, muscles: "Přímý břišní sval, šikmé břišní, spodní záda",
+      desc: "Statický výdrž v pozici na předloktích — základ core tréninku.",
+      howTo: ["Na předloktích a špičkách, lokty pod rameny", "Tělo v rovné linii od hlavy po paty — jako prkno", "Zpevni břicho (jako bys čekala ránu do břicha)", "Dýchej! Nezadržuj dech — krátké kontrolované dechy", "Drž 20-60 sekund — kvalita nad kvantitou"],
+      mistakes: ["Hýždě příliš vysoko — tělo musí být rovné", "Prohnutá záda — zpevni břicho víc", "Zadržování dechu — dýchej normálně"] },
+    { name: "Bicycle crunches", equipment: ["bodyweight"], difficulty: "beginner", type: "isolation", movementPattern: "core", noWeight: true, muscles: "Přímý a šikmé břišní svaly",
+      desc: "Střídavé přitahování kolen a loktů — zapojí celé břicho.",
+      howTo: ["Na zádech, ruce za hlavou (netlač na krk!), kolena pokrčená", "Zvedni lopatky od země — tady zůstanou po celou dobu", "Natáhni pravou nohu a otáčej trup — levý loket k pravému kolenu", "Přehoď — pravý loket k levému kolenu", "Plynulé střídání jako na kole, pomalé a kontrolované"],
+      mistakes: ["Tahání za krk — ruce jen lehce za hlavou, síla jde z břicha", "Příliš rychlé otáčení — pomalý pohyb s kontrolou", "Spouštění lopatek na zem — lopatky zůstávají zvednuté"] },
+    { name: "Russian twists", equipment: ["bodyweight", "dumbbells"], difficulty: "beginner", type: "isolation", movementPattern: "core", noWeight: true, muscles: "Šikmé břišní svaly, přímý sval",
+      desc: "Rotační cvik vsedě — tvaruje boky.",
+      howTo: ["Sedni si na zem, kolena pokrčená, chodidla na zemi (nebo ve vzduchu pro těžší verzi)", "Zakloň se lehce dozadu — trup asi 45° od země", "Drž ruce (nebo závaží) před hrudníkem", "Otáčej trup ze strany na stranu — závaží se dotýká podlahy po stranách", "Pohyb jde z trupu, ne z paží!"],
+      mistakes: ["Jen pohyb rukama bez rotace trupu — otáčej celý hrudní koš", "Příliš velký záklon — 45° stačí", "Záda se hroutí — drž hrudník vystrčený"] },
+    { name: "Hanging leg raises", equipment: ["pullup_bar"], difficulty: "advanced", type: "isolation", movementPattern: "core", noWeight: true, muscles: "Spodní břicho, bedrokyčlostehenní sval, celý core",
+      desc: "Zvedání nohou ve visu na hrazdě — pokročilý core cvik.",
+      howTo: ["Vis na hrazdě, plný svis, paže natažené", "Zvedej natažené (nebo pokrčené pro lehčí verzi) nohy před sebe", "Jdi co nejvýš — ideálně nohy vodorovně nebo výš", "Pomalu spouštěj zpět — NEklátej se!", "Začátečníci: zvedej jen kolena ke hrudi"],
+      mistakes: ["Kývání a švihání — čistý kontrolovaný pohyb", "Jen zvednutí kolen a zpět — zkus jít nohy výš", "Ztráta úchopu — posiluj předloktí, používej magnézium"] },
+    { name: "Cable woodchops", equipment: ["cables"], difficulty: "intermediate", type: "isolation", movementPattern: "core", muscles: "Šikmé břišní, core, ramena",
+      desc: "Rotační pohyb na kladce — funkční core trénink.",
+      howTo: ["Nastav kladku nahoru (nebo dolů pro opačný směr)", "Stůj bokem ke kladce, uchop madlo oběma rukama", "Rotuj trupem a táhni madlo šikmo přes tělo — shora dolů", "Paže jsou téměř natažené — pohyb jde z trupu, ne z paží", "Kontrolovaně vracej zpět, udělej všechny repy na jednu stranu, pak otoč"],
+      mistakes: ["Ohýbání paží — paže jsou jen prodloužení, rotuje trup", "Pohyb z ramen — síla jde z core a boků", "Příliš rychlý pohyb — pomalá kontrola zvlášť při vracení"] },
+    { name: "Dead bug", equipment: ["bodyweight"], difficulty: "beginner", type: "isolation", movementPattern: "core", noWeight: true, muscles: "Hluboké břišní svaly, přímý sval, spodní záda",
+      desc: "Skvělý cvik na stabilitu core a spodní záda.",
+      howTo: ["Na zádech, ruce natažené ke stropu, kolena pokrčená v 90° (stehna svisle)", "Záda přitiskni k zemi — bederní páteř se nesmí odlepit!", "Současně natáhni pravou ruku za hlavu a levou nohu dopředu", "Vrať zpět, opakuj druhou stranu", "Celou dobu záda přitisknutá — to je to klíčové"],
+      mistakes: ["Záda se odlepují od země — zmenši rozsah, dokud to neudrží", "Příliš rychlé tempo — pomalý, kontrolovaný pohyb", "Zadržování dechu — dýchej plynule"] },
+    { name: "Ab rollout", equipment: ["barbell"], difficulty: "advanced", type: "isolation", movementPattern: "core", noWeight: true, muscles: "Přímý břišní sval, lats, ramena",
+      desc: "Vyrolování s činkou na kolenou — pokročilý core cvik.",
+      howTo: ["Na kolenou, ruce na čince s malými kotouči (nebo ab wheel)", "Core zpevněný, záda rovná", "Pomalu se vyroluj dopředu — ruce jedou po zemi před tebe", "Jdi co nejdál, aniž by se prohnula záda", "Silou břicha se stáhni zpět do výchozí pozice"],
+      mistakes: ["Prohýbání zad — OKAMŽITĚ zastav, pokud se záda prohnou", "Příliš velký rozsah na začátku — začni s malým rozsahem a přidávej", "Pohyb z ramen místo z core — core tahá zpět, ramena jsou stabilní"] },
+  ],
+  Hýždě: [
+    { name: "Hip thrust", equipment: ["barbell", "bench"], difficulty: "intermediate", type: "compound", movementPattern: "hip_hinge", muscles: "Hýždě (hlavní), hamstringy, spodní záda",
+      desc: "Nejúčinnější cvik na hýždě — tlak boky s činkou.",
+      howTo: ["Sedni si na zem, lopatky opřené o hranu lavičky, činku přes boky", "Chodidla na zemi na šířku ramen, kolena pokrčená v 90°", "Tlač boky nahoru, dokud tělo netvoří rovnou linii od ramen po kolena", "Nahoře maximálně stiskni hýždě na 1-2 sekundy", "Pomalu spouštěj boky dolů, ale nepoklej úplně"],
+      mistakes: ["Prohýbání zad nahoře — stiskni hýždě a drž core", "Chodidla příliš blízko nebo daleko — kolena v 90° nahoře", "Zvedání na špičky — celá plocha chodidla"] },
+    { name: "Glute bridge", equipment: ["bodyweight", "dumbbells"], difficulty: "beginner", type: "compound", movementPattern: "hip_hinge", noWeight: true, muscles: "Hýždě, hamstringy",
+      desc: "Jednodušší verze hip thrustu na zemi — bez lavičky.",
+      howTo: ["Na zádech, kolena pokrčená, chodidla na zemi blízko hýždí", "Jednoručku (pokud používáš) polož na boky", "Tlač boky ke stropu — stiskni hýždě nahoře", "Tělo nahoře: rovná linie od ramen po kolena", "Pomalu dolů — hýždě téměř k zemi, ale nedotýkej se"],
+      mistakes: ["Zvedání z beder místo z hýždí — myšlenkově stiskni hýždě", "Příliš daleko chodidla — kolena v 90° nahoře", "Rychlé odrazy — pomalý kontrolovaný pohyb nahoře"] },
+    { name: "Sumo dřep", equipment: ["barbell", "dumbbells", "kettlebell"], difficulty: "intermediate", type: "compound", movementPattern: "squat", muscles: "Hýždě, vnitřní stehna, quadriceps",
+      desc: "Široký dřep s vytočenými špičkami — zaměřený na hýždě a vnitřní stehna.",
+      howTo: ["Široký postoj (1.5-2× šířka ramen), špičky vytočené ven (45°)", "Závaží drž před sebou (kettlebell) nebo na zádech (činka)", "Dřepni rovně dolů — kolena sledují směr špiček", "Jdi do hloubky — ideálně stehna pod rovnoběžku", "Vytlač se zpět nahoru, stiskni hýždě nahoře"],
+      mistakes: ["Kolena padají dovnitř — MUSÍ sledovat směr špiček", "Naklánění dopředu — trup co nejvíc vzpřímený", "Příliš úzký postoj — to už je normální dřep"] },
+    { name: "Kickback na kladce", equipment: ["cables"], difficulty: "beginner", type: "isolation", movementPattern: "isolation", muscles: "Hýždě (izolace)",
+      desc: "Kopy nohou za sebe na spodní kladce — izolace hýždí.",
+      howTo: ["Připni manžetu na kotník, stůj čelem ke kladce", "Opři se o rám pro stabilitu, stojná noha lehce pokrčená", "Kopni pracovní nohou za sebe a nahoru — stiskni hýždi", "Nahoře zadrž na 1 sekundu", "Pomalu vracej zpět — kontroluj celý pohyb"],
+      mistakes: ["Prohýbání zad — core zpevněný, záda rovná", "Kopání příliš vysoko — pohyb z hýždí, ne ze zad", "Rychlé švihání — pomalý kontrolovaný pohyb"] },
+    { name: "Step-up", equipment: ["dumbbells", "bench"], difficulty: "beginner", type: "compound", movementPattern: "squat", muscles: "Hýždě, quadriceps, hamstringy",
+      desc: "Výstupy na lavičku jednou nohou — funkční cvik.",
+      howTo: ["Stůj před lavičkou (výška kolena nebo nižší), jednoručky v rukou", "Postav celé chodidlo na lavičku — ne jen špičku", "Vytlač se nahoru silou přední nohy — zadní noha jen lehce pomáhá", "Nahoře se napřim, stiskni hýždi", "Pomalu se spouštěj zpět — kontrolovaně"],
+      mistakes: ["Odraz ze zadní nohy — síla musí jít z nohy na lavičce", "Příliš vysoká lavička na začátek — začni nižší", "Koleno padá dovnitř — tlač ven nad špičku"] },
+  ],
+};
+
+const NAMES_EN = {
+  "Bench press": "Bench Press", "Bench press s jednoručkami": "Dumbbell Bench Press",
+  "Kliky": "Push-ups", "Rozpažky s jednoručkami": "Dumbbell Flyes",
+  "Cable crossover": "Cable Crossover", "Šikmý bench press": "Incline Dumbbell Press",
+  "Chest press na stroji": "Machine Chest Press", "Diamantové kliky": "Diamond Push-ups",
+  "Shrágy": "Shrugs", "Přítahy na kladce": "Cable Lat Pulldown",
+  "Bent-over row": "Bent-over Row", "Jednoruční přítah": "Single-arm Dumbbell Row",
+  "Shyby": "Pull-ups", "Lat pulldown": "Lat Pulldown",
+  "Seated row": "Seated Cable Row", "T-bar row": "T-bar Row",
+  "Tlaky nad hlavu": "Overhead Press", "Tlaky s jednoručkami": "Dumbbell Shoulder Press",
+  "Upažování": "Lateral Raises", "Face pulls": "Face Pulls",
+  "Arnold press": "Arnold Press", "Předpažování": "Front Raises",
+  "Bicepsový curl": "Bicep Curl", "Hammer curl": "Hammer Curl",
+  "Concentration curl": "Concentration Curl", "Cable curl": "Cable Curl",
+  "Chin-upy": "Chin-ups", "Tricepsové kliky na lavičce": "Bench Dips",
+  "Francouzský tlak": "Skull Crushers", "Triceps pushdown": "Triceps Pushdown",
+  "Kickback": "Triceps Kickback", "Úzké kliky": "Close-grip Push-ups",
+  "Overhead triceps extension": "Overhead Triceps Extension",
+  "Dřep (squat)": "Barbell Squat", "Goblet squat": "Goblet Squat",
+  "Mrtvý tah": "Deadlift", "Rumunský mrtvý tah": "Romanian Deadlift",
+  "Výpady": "Lunges", "Leg press": "Leg Press", "Leg curl": "Leg Curl",
+  "Leg extension": "Leg Extension", "Bulharské dřepy": "Bulgarian Split Squat",
+  "Plank": "Plank", "Bicycle crunches": "Bicycle Crunches",
+  "Russian twists": "Russian Twists", "Hanging leg raises": "Hanging Leg Raises",
+  "Cable woodchops": "Cable Woodchops", "Dead bug": "Dead Bug", "Ab rollout": "Ab Rollout",
+  "Hip thrust": "Hip Thrust", "Glute bridge": "Glute Bridge",
+  "Sumo dřep": "Sumo Squat", "Kickback na kladce": "Cable Glute Kickback", "Step-up": "Step-up",
 };
 
 const MG_LABELS = {
@@ -96,7 +374,7 @@ const UI = {
       title: "Dnešní trénink", rest: "Odpočinek", skip: "Přeskočit",
       done: "hotovo", set: "Set", weightKg: "Váha (kg)", reps: "Opak.", timeS: "Čas (s)",
       easy: "Easy", moderate: "Akorát", hard: "Dřina",
-      superset: "SUPERSET", supersetHint2: "Střídej série: 1A → 1B → 2A → 2B …", supersetHint3: "Střídej série: 1A → 1B → 1C → 2A → 2B → 2C …",
+      superset: "SUPERSET", supersetHint: "Střídej série: 1A → 1B → 2A → 2B …",
       finish: "Dokončit trénink",
       tags: { up: "↑ Zvýšeno", same: "→ Stejná váha", new: "✦ Nový", deload: "🧘 Deload", comeback: "↩ Návrat", profile: "Profil", bodyweight: "Vlastní váha", hold: "Výdrž" },
     },
@@ -181,7 +459,7 @@ const UI = {
       title: "Today's workout", rest: "Rest", skip: "Skip",
       done: "done", set: "Set", weightKg: "Weight (kg)", reps: "Reps", timeS: "Time (s)",
       easy: "Easy", moderate: "Moderate", hard: "Hard",
-      superset: "SUPERSET", supersetHint2: "Alternate sets: 1A → 1B → 2A → 2B …", supersetHint3: "Alternate sets: 1A → 1B → 1C → 2A → 2B → 2C …",
+      superset: "SUPERSET", supersetHint: "Alternate sets: 1A → 1B → 2A → 2B …",
       finish: "Finish workout",
       tags: { up: "↑ Increased", same: "→ Same weight", new: "✦ New", deload: "🧘 Deload", comeback: "↩ Return", profile: "Profile", bodyweight: "Bodyweight", hold: "Hold" },
     },
@@ -234,6 +512,541 @@ const UI = {
   },
 };
 
+const SPLIT_PATTERNS = [
+  { label: "Push (Prsa + Ramena + Triceps)", groups: ["Prsa", "Ramena", "Triceps"], zone: "upper" },
+  { label: "Pull (Záda + Biceps)", groups: ["Záda", "Biceps"], zone: "upper" },
+  { label: "Legs (Nohy + Hýždě + Core)", groups: ["Nohy", "Hýždě", "Core"], zone: "lower" },
+  { label: "Upper Body (Prsa + Záda + Ramena)", groups: ["Prsa", "Záda", "Ramena"], zone: "upper" },
+  { label: "Lower + Ramena", groups: ["Nohy", "Hýždě", "Ramena"], zone: "mixed" },
+  { label: "Záda + Hýždě + Core", groups: ["Záda", "Hýždě", "Core"], zone: "mixed" },
+  { label: "Full Body", groups: ["Prsa", "Záda", "Nohy", "Ramena", "Core"], zone: "mixed" },
+  { label: "Nohy + Core", groups: ["Nohy", "Core", "Hýždě"], zone: "lower" },
+];
+
+const UPPER_GROUPS = new Set(["Prsa", "Záda", "Ramena", "Biceps", "Triceps"]);
+const LOWER_GROUPS = new Set(["Nohy", "Hýždě", "Core"]);
+
+const EXERCISE_FAMILY = {
+  "Kliky": "pushup", "Diamantové kliky": "pushup", "Úzké kliky": "pushup",
+  "Tricepsové kliky na lavičce": "dip",
+  "Bench press": "bench", "Bench press s jednoručkami": "bench", "Šikmý bench press": "bench", "Chest press na stroji": "bench",
+  "Tlaky nad hlavu": "overhead_press", "Tlaky s jednoručkami": "overhead_press", "Arnold press": "overhead_press",
+  "Dřep (squat)": "squat_family", "Goblet squat": "squat_family", "Bulharské dřepy": "squat_family", "Sumo dřep": "squat_family",
+  "Mrtvý tah": "deadlift", "Rumunský mrtvý tah": "deadlift",
+  "Bicepsový curl": "curl", "Hammer curl": "curl", "Concentration curl": "curl", "Cable curl": "curl",
+};
+
+const WEEK_CONFIGS = [
+  { label: "Akumulace", weightPct: 1.0, reps: { compound: "6-8", isolation: "10-12" }, setsBonus: 0, deload: false },
+  { label: "Zesilování", weightPct: 1.0, reps: { compound: "4-6", isolation: "8-10" }, setsBonus: 0, deload: false },
+  { label: "Peak", weightPct: 1.0, reps: { compound: "2-4", isolation: "6-8" }, setsBonus: 1, deload: false },
+  { label: "Deload", weightPct: 0.6, reps: { compound: "8-10", isolation: "12-15" }, setsBonus: -1, deload: true },
+];
+
+const VOLUME_TARGETS = {
+  Prsa: { min: 10, max: 14 },
+  Záda: { min: 10, max: 14 },
+  Nohy: { min: 10, max: 14 },
+  Ramena: { min: 8, max: 12 },
+  Biceps: { min: 8, max: 12 },
+  Triceps: { min: 8, max: 12 },
+  Core: { min: 6, max: 10 },
+  Hýždě: { min: 6, max: 10 },
+};
+
+const STRENGTH_RATIOS = [
+  { a: "Bench press", b: "Bent-over row", idealRatio: 1.0, label: "Prsa vs Záda" },
+  { a: "Dřep (squat)", b: "Mrtvý tah", idealRatio: 0.8, label: "Dřep vs Mrtvý tah" },
+  { a: "Bench press", b: "Tlaky nad hlavu", idealRatio: 1.5, label: "Bench vs Ramena" },
+];
+
+const SUPERSET_PAIR_RULES = {
+  horizontal_push: "horizontal_pull",
+  horizontal_pull: "horizontal_push",
+  vertical_push: "vertical_pull",
+  vertical_pull: "vertical_push",
+  squat: "hip_hinge",
+  hip_hinge: "squat",
+};
+
+const BIG_MUSCLE_GROUPS = ["Prsa", "Záda", "Nohy", "Hýždě"];
+const SMALL_INCREMENT = 1.25;
+const BIG_INCREMENT = 2.5;
+
+// ========== HELPER FUNCTIONS ==========
+
+function getRecoveryStatus(muscleGroup, workoutHistory) {
+  const now = Date.now();
+  let lastWorked = null;
+  for (const w of workoutHistory) {
+    for (const ex of w.exercises) {
+      if (ex.muscleGroup === muscleGroup && ex.logged) {
+        const t = new Date(w.date).getTime();
+        if (!lastWorked || t > lastWorked) lastWorked = t;
+      }
+    }
+  }
+  if (!lastWorked) return { pct: 100, label: "Odpočatý", hours: null };
+  const hoursAgo = (now - lastWorked) / (1000 * 60 * 60);
+  const recoveryHours = 48;
+  const pct = Math.min(100, Math.round((hoursAgo / recoveryHours) * 100));
+  return { pct, label: pct >= 80 ? "Odpočatý" : pct >= 50 ? "Skoro OK" : "Regeneruje", hours: Math.round(hoursAgo) };
+}
+
+function getLastPerformance(exerciseName, history) {
+  for (const w of history) {
+    for (const ex of w.exercises) {
+      if (ex.name === exerciseName && ex.logged && ex.setDetails) {
+        const completedSets = ex.setDetails.filter(s => s.done && s.weight);
+        if (completedSets.length > 0) {
+          return { sets: completedSets, targetReps: ex.reps, muscleGroup: ex.muscleGroup, date: w.date, rpe: ex.rpe || null };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function getExerciseHistory(exerciseName, history, limit = 8) {
+  const entries = [];
+  for (const w of history) {
+    for (const ex of w.exercises) {
+      if (ex.name === exerciseName && ex.logged && ex.setDetails) {
+        const doneSets = ex.setDetails.filter(s => s.done && s.weight);
+        if (doneSets.length > 0) {
+          const maxW = Math.max(...doneSets.map(s => parseFloat(s.weight) || 0));
+          const avgReps = doneSets.reduce((sum, s) => sum + (parseFloat(s.reps) || 0), 0) / doneSets.length;
+          entries.push({ date: w.date, sets: doneSets.length, maxWeight: maxW, avgReps: Math.round(avgReps * 10) / 10, rpe: ex.rpe || null });
+        }
+      }
+    }
+    if (entries.length >= limit) break;
+  }
+  return entries;
+}
+
+function calcProgression(lastPerf, muscleGroup, targetReps, weekConfig, keyLifts, exerciseName) {
+  if (!lastPerf || lastPerf.sets.length === 0) {
+    const keyLiftWeight = keyLifts?.[exerciseName];
+    if (keyLiftWeight) {
+      const w = weekConfig.deload ? Math.round(keyLiftWeight * 0.6 * 4) / 4 : keyLiftWeight;
+      const tag = weekConfig.deload ? "deload" : "profile";
+      return { suggestedWeight: String(w), tag, noteKey: weekConfig.deload ? "deloadProfile" : "profile", noteData: { w }, lastWeight: null };
+    }
+    return { suggestedWeight: "", tag: "new", noteKey: "new", noteData: {}, lastWeight: null };
+  }
+
+  const avgWeight = lastPerf.sets.reduce((s, set) => s + parseFloat(set.weight || 0), 0) / lastPerf.sets.length;
+  const avgReps = lastPerf.sets.reduce((s, set) => s + parseFloat(set.reps || 0), 0) / lastPerf.sets.length;
+  const isBig = BIG_MUSCLE_GROUPS.includes(muscleGroup);
+  const increment = isBig ? BIG_INCREMENT : SMALL_INCREMENT;
+
+  const daysSinceLast = (Date.now() - new Date(lastPerf.date).getTime()) / (1000 * 60 * 60 * 24);
+  let comebackPct = 1.0;
+  if (daysSinceLast > 28) comebackPct = 0.80;
+  else if (daysSinceLast > 21) comebackPct = 0.85;
+  else if (daysSinceLast > 14) comebackPct = 0.90;
+  else if (daysSinceLast > 7) comebackPct = 0.95;
+
+  const repsParts = targetReps.split("-");
+  const targetMax = parseInt(repsParts[repsParts.length - 1]) || 12;
+  const targetMin = parseInt(repsParts[0]) || 8;
+  const allSetsHitTarget = lastPerf.sets.every(s => parseFloat(s.reps) >= targetMax);
+
+  if (weekConfig.deload) {
+    const deloadWeight = Math.round(avgWeight * 0.6 * 4) / 4;
+    return { suggestedWeight: String(deloadWeight), tag: "deload", noteKey: "deload", noteData: { w: deloadWeight, prev: avgWeight }, lastWeight: avgWeight };
+  }
+
+  if (comebackPct < 1.0) {
+    const comebackWeight = Math.round(avgWeight * comebackPct * 4) / 4;
+    const days = Math.round(daysSinceLast);
+    return { suggestedWeight: String(comebackWeight), tag: "comeback", noteKey: "comeback", noteData: { w: comebackWeight, days }, lastWeight: avgWeight };
+  }
+
+  const lastRpe = lastPerf.rpe;
+
+  if (lastRpe === "easy" && avgWeight > 0) {
+    const newWeight = Math.round((avgWeight + increment) * 4) / 4;
+    return { suggestedWeight: String(newWeight), tag: "up", noteKey: "rpeEasy", noteData: { w: newWeight, inc: increment }, lastWeight: avgWeight };
+  }
+
+  if (lastRpe === "hard" && avgWeight > 0) {
+    return { suggestedWeight: String(avgWeight), tag: "same", noteKey: "rpeHard", noteData: { w: avgWeight }, lastWeight: avgWeight };
+  }
+
+  if (allSetsHitTarget && avgWeight > 0) {
+    const newWeight = Math.round((avgWeight + increment) * 4) / 4;
+    return { suggestedWeight: String(newWeight), tag: "up", noteKey: "up", noteData: { prev: avgWeight, reps: Math.round(avgReps), w: newWeight, inc: increment }, lastWeight: avgWeight };
+  }
+
+  if (avgReps < targetMin && avgWeight > 0) {
+    return { suggestedWeight: String(avgWeight), tag: "same", noteKey: "belowTarget", noteData: { w: avgWeight, reps: Math.round(avgReps), target: targetReps }, lastWeight: avgWeight };
+  }
+
+  return {
+    suggestedWeight: String(avgWeight || ""),
+    tag: "same",
+    noteKey: avgWeight ? "stayMax" : "",
+    noteData: { w: avgWeight },
+    lastWeight: avgWeight || null,
+  };
+}
+
+function getStrengthHistory(exerciseName, history, limit = 10) {
+  const points = [];
+  for (const w of [...history].reverse()) {
+    for (const ex of w.exercises) {
+      if (ex.name === exerciseName && ex.logged && ex.setDetails) {
+        const completedSets = ex.setDetails.filter(s => s.done && s.weight);
+        if (completedSets.length > 0) {
+          const maxWeight = Math.max(...completedSets.map(s => parseFloat(s.weight) || 0));
+          points.push({ date: w.date, weight: maxWeight });
+        }
+      }
+    }
+    if (points.length >= limit) break;
+  }
+  return points;
+}
+
+function getCycleInfo(cycle) {
+  if (!cycle?.startDate) {
+    return { week: 1, label: WEEK_CONFIGS[0].label, config: WEEK_CONFIGS[0], needsReset: true };
+  }
+  const days = (Date.now() - new Date(cycle.startDate).getTime()) / (1000 * 60 * 60 * 24);
+  if (days >= 28) {
+    return { week: 1, label: WEEK_CONFIGS[0].label, config: WEEK_CONFIGS[0], needsReset: true };
+  }
+  const weekIdx = Math.min(3, Math.floor(days / 7));
+  return { week: weekIdx + 1, label: WEEK_CONFIGS[weekIdx].label, config: WEEK_CONFIGS[weekIdx], needsReset: false };
+}
+
+function getWeeklyVolume(muscleGroup, history) {
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  let totalSets = 0;
+  for (const w of history) {
+    if (new Date(w.date).getTime() < weekAgo) continue;
+    for (const ex of w.exercises) {
+      if (ex.muscleGroup === muscleGroup && ex.logged && ex.setDetails) {
+        totalSets += ex.setDetails.filter(s => s.done).length;
+      }
+    }
+  }
+  return totalSets;
+}
+
+function getExerciseMuscleGroup(name) {
+  for (const [group, exercises] of Object.entries(EXERCISE_LIBRARY)) {
+    if (exercises.some(ex => ex.name === name)) return group;
+  }
+  return null;
+}
+
+function analyzeWeakPoints(history) {
+  const maxWeights = {};
+  for (const w of history) {
+    for (const ex of w.exercises) {
+      if (ex.logged && ex.setDetails) {
+        const weights = ex.setDetails.filter(s => s.done && s.weight).map(s => parseFloat(s.weight));
+        if (weights.length > 0) {
+          const max = Math.max(...weights);
+          if (!maxWeights[ex.name] || max > maxWeights[ex.name]) maxWeights[ex.name] = max;
+        }
+      }
+    }
+  }
+  const issues = [];
+  for (const ratio of STRENGTH_RATIOS) {
+    const wA = maxWeights[ratio.a];
+    const wB = maxWeights[ratio.b];
+    if (!wA || !wB) continue;
+    const actual = wA / wB;
+    const deviation = actual / ratio.idealRatio;
+    if (deviation > 1.25) {
+      issues.push({
+        label: ratio.label,
+        message: `${ratio.b} zaostává — poměr ${actual.toFixed(1)}:1 (ideál ${ratio.idealRatio}:1)`,
+        weakGroup: getExerciseMuscleGroup(ratio.b),
+      });
+    } else if (deviation < 0.75) {
+      issues.push({
+        label: ratio.label,
+        message: `${ratio.a} zaostává — poměr ${actual.toFixed(1)}:1 (ideál ${ratio.idealRatio}:1)`,
+        weakGroup: getExerciseMuscleGroup(ratio.a),
+      });
+    }
+  }
+  return issues;
+}
+
+function getExerciseAlternatives(exercise, equipment, currentExerciseNames) {
+  const eqSet = new Set(equipment);
+  const group = exercise.muscleGroup;
+  const pattern = exercise.movementPattern;
+  const all = (EXERCISE_LIBRARY[group] || []).filter(ex =>
+    ex.name !== exercise.name && !currentExerciseNames.includes(ex.name)
+  );
+  const sort = (list) => [...list.filter(ex => ex.movementPattern === pattern), ...list.filter(ex => ex.movementPattern !== pattern)];
+  const mine = sort(all.filter(ex => ex.equipment.some(e => eqSet.has(e))));
+  const other = sort(all.filter(ex => !ex.equipment.some(e => eqSet.has(e))));
+  return { mine, other };
+}
+
+function selectExercises(group, eqSet, history, maxCount, globalUsedPatterns = {}, globalUsedFamilies = {}) {
+  const available = (EXERCISE_LIBRARY[group] || []).filter(ex =>
+    ex.equipment.some(e => eqSet.has(e))
+  );
+  if (available.length === 0) return [];
+
+  const recentNames = new Set();
+  let wCount = 0;
+  for (const w of history) {
+    for (const ex of w.exercises) {
+      if (ex.muscleGroup === group && ex.logged) recentNames.add(ex.name);
+    }
+    if (++wCount >= 4) break;
+  }
+
+  const scored = available.map(ex => {
+    let score = 0;
+    if (ex.type === "compound") score += 100;
+    if (recentNames.has(ex.name)) score += 50;
+    const patternUses = globalUsedPatterns[ex.movementPattern] || 0;
+    if (patternUses >= 2) score -= 80;
+    else if (patternUses >= 1) score -= 30;
+    const family = EXERCISE_FAMILY[ex.name];
+    if (family && globalUsedFamilies[family]) score -= 120;
+    score += Math.random() * 10;
+    return { ...ex, _score: score };
+  });
+  scored.sort((a, b) => b._score - a._score);
+
+  const selected = [];
+  const usedPatterns = new Set();
+  const usedFamiliesLocal = new Set();
+  const deferred = [];
+
+  for (const ex of scored) {
+    if (selected.length >= maxCount) break;
+    const family = EXERCISE_FAMILY[ex.name];
+    const familyBlocked = family && (globalUsedFamilies[family] || usedFamiliesLocal.has(family));
+    if ((!usedPatterns.has(ex.movementPattern) || ex.movementPattern === "isolation" || ex.movementPattern === "core") && !familyBlocked) {
+      selected.push(ex);
+      usedPatterns.add(ex.movementPattern);
+      if (family) usedFamiliesLocal.add(family);
+    } else {
+      deferred.push(ex);
+    }
+  }
+
+  for (const ex of deferred) {
+    if (selected.length >= maxCount) break;
+    selected.push(ex);
+  }
+
+  return selected;
+}
+
+function getRecentZoneBalance(history) {
+  const cutoff = Date.now() - 5 * 24 * 60 * 60 * 1000;
+  let upper = 0, lower = 0, mixed = 0;
+  for (const w of history) {
+    if (new Date(w.date).getTime() < cutoff) break;
+    const groups = new Set(w.exercises.filter(e => e.logged).map(e => e.muscleGroup));
+    const hasUpper = [...groups].some(g => UPPER_GROUPS.has(g));
+    const hasLower = [...groups].some(g => LOWER_GROUPS.has(g));
+    if (hasUpper && hasLower) mixed++;
+    else if (hasUpper) upper++;
+    else if (hasLower) lower++;
+  }
+  return { upper, lower, mixed };
+}
+
+function generateWorkout(equipment, history, cycle, profile, preferredGroups = null) {
+  const cycleInfo = getCycleInfo(cycle);
+  const weekConfig = cycleInfo.config;
+  const recoveries = {};
+  MUSCLE_GROUPS.forEach(mg => { recoveries[mg] = getRecoveryStatus(mg, history); });
+
+  const weakPoints = analyzeWeakPoints(history);
+  const weakGroups = new Set(weakPoints.map(wp => wp.weakGroup).filter(Boolean));
+
+  const eqSet = new Set(equipment);
+  const zoneBalance = getRecentZoneBalance(history);
+
+  let bestSplit;
+  if (preferredGroups) {
+    bestSplit = { groups: preferredGroups };
+  } else {
+    const scored = SPLIT_PATTERNS.map(sp => {
+      const avgRecovery = sp.groups.reduce((s, g) => s + recoveries[g].pct, 0) / sp.groups.length;
+      const weakBonus = sp.groups.some(g => weakGroups.has(g)) ? 10 : 0;
+      const patterns = new Set();
+      let groupsWithExercises = 0;
+      for (const g of sp.groups) {
+        const avail = (EXERCISE_LIBRARY[g] || []).filter(ex => ex.equipment.some(e => eqSet.has(e)));
+        if (avail.length > 0) groupsWithExercises++;
+        avail.forEach(ex => patterns.add(ex.movementPattern));
+      }
+      const coveragePct = groupsWithExercises / sp.groups.length;
+      const varietyScore = patterns.size * 5 + coveragePct * 15;
+
+      let zoneBonus = 0;
+      if (sp.zone === "upper" && zoneBalance.upper > zoneBalance.lower + 1) zoneBonus = -25;
+      else if (sp.zone === "upper" && zoneBalance.upper > zoneBalance.lower) zoneBonus = -12;
+      else if (sp.zone === "lower" && zoneBalance.lower > zoneBalance.upper + 1) zoneBonus = -25;
+      else if (sp.zone === "lower" && zoneBalance.lower > zoneBalance.upper) zoneBonus = -12;
+      else if (sp.zone === "lower" && zoneBalance.upper > zoneBalance.lower) zoneBonus = 15;
+      else if (sp.zone === "upper" && zoneBalance.lower > zoneBalance.upper) zoneBonus = 15;
+      if (sp.zone === "mixed") zoneBonus += 5;
+
+      return { ...sp, score: avgRecovery + weakBonus + varietyScore + zoneBonus };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    bestSplit = scored[0];
+  }
+
+  const exercises = [];
+  const globalUsedPatterns = {};
+  const globalUsedFamilies = {};
+
+  const groupCount = bestSplit.groups.length;
+
+  for (const group of bestSplit.groups) {
+    const isPrimary = group === bestSplit.groups[0];
+    const currentVolume = getWeeklyVolume(group, history);
+    const target = VOLUME_TARGETS[group];
+    const remaining = Math.max(0, target.max - currentVolume);
+
+    let exerciseCount = isPrimary
+      ? (groupCount >= 4 ? 2 : 3)
+      : (groupCount >= 4 ? 1 : 2);
+    let baseSets = 4;
+
+    if (weekConfig.deload) {
+      exerciseCount = Math.max(1, exerciseCount - 1);
+      baseSets = 3;
+    }
+
+    baseSets += weekConfig.setsBonus;
+    baseSets = Math.max(2, baseSets);
+
+    if (remaining <= 2 && remaining > 0) {
+      exerciseCount = 1;
+      baseSets = Math.min(baseSets, remaining);
+    } else if (remaining === 0) {
+      exerciseCount = 1;
+      baseSets = 2;
+    } else if (remaining < exerciseCount * baseSets) {
+      exerciseCount = Math.max(1, Math.ceil(remaining / baseSets));
+    }
+
+    const selected = selectExercises(group, eqSet, history, exerciseCount, globalUsedPatterns, globalUsedFamilies);
+
+    for (const ex of selected) {
+      globalUsedPatterns[ex.movementPattern] = (globalUsedPatterns[ex.movementPattern] || 0) + 1;
+      const family = EXERCISE_FAMILY[ex.name];
+      if (family) globalUsedFamilies[family] = (globalUsedFamilies[family] || 0) + 1;
+      const exType = ex.type === "compound" ? "compound" : "isolation";
+      const reps = ex.isHold ? "30-60s" : weekConfig.reps[exType];
+      const lastPerformance = getLastPerformance(ex.name, history);
+      const overloadResult = ex.noWeight
+        ? { suggestedWeight: "", tag: "bodyweight", note: "", lastWeight: null }
+        : calcProgression(lastPerformance, group, reps, weekConfig, profile?.keyLifts, ex.name);
+
+      exercises.push({
+        id: Math.random().toString(36).substr(2, 9),
+        name: ex.name,
+        muscleGroup: group,
+        desc: ex.desc,
+        type: ex.type,
+        movementPattern: ex.movementPattern,
+        noWeight: ex.noWeight || false,
+        isHold: ex.isHold || false,
+        sets: baseSets,
+        reps,
+        weight: overloadResult.suggestedWeight || "",
+        logged: false,
+        progressTag: overloadResult.tag,
+        noteKey: overloadResult.noteKey,
+        noteData: overloadResult.noteData,
+        lastWeight: overloadResult.lastWeight,
+        setDetails: Array.from({ length: baseSets }, () => ({
+          reps: "",
+          weight: overloadResult.suggestedWeight || "",
+          done: false,
+        })),
+      });
+    }
+  }
+
+  let pairCounter = 0;
+  const pairedIndices = new Set();
+
+  for (let i = 0; i < exercises.length; i++) {
+    if (pairedIndices.has(i)) continue;
+    const ex = exercises[i];
+    const wantedPattern = SUPERSET_PAIR_RULES[ex.movementPattern];
+    let found = false;
+
+    if (wantedPattern) {
+      for (let j = i + 1; j < exercises.length; j++) {
+        if (pairedIndices.has(j)) continue;
+        if (exercises[j].movementPattern === wantedPattern && exercises[j].muscleGroup !== ex.muscleGroup) {
+          const pid = `pair_${pairCounter++}`;
+          exercises[i].pairId = pid;
+          exercises[j].pairId = pid;
+          pairedIndices.add(i);
+          pairedIndices.add(j);
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found && (ex.movementPattern === "isolation" || ex.movementPattern === "core")) {
+      for (let j = i + 1; j < exercises.length; j++) {
+        if (pairedIndices.has(j)) continue;
+        if ((exercises[j].movementPattern === "isolation" || exercises[j].movementPattern === "core") && exercises[j].muscleGroup !== ex.muscleGroup) {
+          const pid = `pair_${pairCounter++}`;
+          exercises[i].pairId = pid;
+          exercises[j].pairId = pid;
+          pairedIndices.add(i);
+          pairedIndices.add(j);
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) exercises[i].pairId = null;
+  }
+
+  const reordered = [];
+  const placed = new Set();
+  for (let i = 0; i < exercises.length; i++) {
+    if (placed.has(i)) continue;
+    reordered.push(exercises[i]);
+    placed.add(i);
+    if (exercises[i].pairId) {
+      const partnerIdx = exercises.findIndex((e, j) => j !== i && !placed.has(j) && e.pairId === exercises[i].pairId);
+      if (partnerIdx !== -1) {
+        reordered.push(exercises[partnerIdx]);
+        placed.add(partnerIdx);
+      }
+    }
+  }
+
+  return {
+    id: Math.random().toString(36).substr(2, 9),
+    date: new Date().toISOString(),
+    splitLabel: bestSplit.label || bestSplit.groups.join(" + "),
+    weekLabel: `T${cycleInfo.week} · ${weekConfig.label}`,
+    exercises: reordered,
+    completed: false,
+  };
+}
 
 function loadSavedData() {
   try {
@@ -330,14 +1143,26 @@ export default function FitApp() {
 
   const finishOnboarding = () => { setOnboarded(true); };
 
-  const genWorkout = () => {
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+
+  const genWorkout = () => setLocationPickerVisible(true);
+
+  const genWorkoutWithLocation = (locationKey) => {
+    setLocationPickerVisible(false);
+    const presets = {
+      gym:    ["barbell","dumbbells","bench","rack","cables","machines","pullup_bar","bands","bodyweight","kettlebell"],
+      home:   ["dumbbells","bands","bodyweight","kettlebell"],
+      custom: null,
+    };
+    const eq = presets[locationKey] ?? equipment;
+    if (presets[locationKey]) setEquipment(presets[locationKey]);
     let currentCycle = cycle;
     const cycleInfo = getCycleInfo(currentCycle);
     if (cycleInfo.needsReset || !currentCycle) {
       currentCycle = { startDate: new Date().toISOString() };
       setCycle(currentCycle);
     }
-    const w = generateWorkout(equipment, history, currentCycle, profile);
+    const w = generateWorkout(eq, history, currentCycle, profile);
     setCurrentWorkout(w);
     setWorkoutStartTime(Date.now());
     navigateView("workout");
@@ -797,21 +1622,6 @@ export default function FitApp() {
 
               <p style={{ color: C.textSec, fontSize: 15, lineHeight: 1.6, marginTop: 12 }}>{selectedExercise.desc || exLib?.desc}</p>
 
-              {(() => {
-                const gifUrl = getExerciseGifUrl(selectedExercise.name);
-                if (!gifUrl) return null;
-                return (
-                  <div style={{ marginTop: 12, borderRadius: 12, overflow: "hidden", background: "#f5f5f7", display: "flex", justifyContent: "center" }}>
-                    <img
-                      src={gifUrl}
-                      alt={selectedExercise.name}
-                      style={{ width: "100%", maxWidth: 280, height: "auto", display: "block" }}
-                      loading="lazy"
-                    />
-                  </div>
-                );
-              })()}
-
               <a
                 href={`https://www.youtube.com/results?search_query=${encodeURIComponent((NAMES_EN[selectedExercise.name] || selectedExercise.name) + " exercise form")}`}
                 target="_blank" rel="noopener noreferrer"
@@ -917,7 +1727,7 @@ export default function FitApp() {
         <div style={{ ...s.page, animation: `${viewTransition.direction === "forward" ? "viewSlideIn" : "viewSlideInReverse"} 0.3s ease` }}>
           <div style={s.headerArea}>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 16 }}>
-              <h1 style={{ ...s.logo, marginBottom: 0, lineHeight: 0.85 }}><span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span><br/><span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span></h1>
+              <h1 style={{ ...s.logo, marginBottom: 0, lineHeight: 0.92 }}><span style={{ fontFamily: FSerif, fontStyle: "italic" }}>Peachy</span><br/><span style={{ fontFamily: FSerif, fontStyle: "normal", opacity: 0.5 }}>Pump</span></h1>
               <div style={{ display: "flex", gap: 10, alignItems: "center", paddingBottom: 4 }}>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{totalWorkouts}</div>
@@ -1242,23 +2052,6 @@ export default function FitApp() {
             </div>
           )}
 
-          {history.length === 0 && (
-            <div style={{
-              textAlign: "center", padding: "40px 24px", marginTop: 16, borderRadius: C.r,
-              background: C.cardGrad, border: C.cardBorder, boxShadow: C.shadow,
-            }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🍑</div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: C.text, marginBottom: 8 }}>
-                {lang === "cs" ? "Tvůj první trénink čeká!" : "Your first workout awaits!"}
-              </h3>
-              <p style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6, maxWidth: 260, margin: "0 auto" }}>
-                {lang === "cs"
-                  ? "Vygeneruj si trénink a začni sledovat svůj progres. Každý trénink tě posouvá dál."
-                  : "Generate a workout and start tracking your progress. Every session counts."}
-              </p>
-            </div>
-          )}
-
           {history.length > 0 && (
             <div style={s.section}>
               <h2 style={{ ...s.sectionTitle, marginBottom: 12 }}>Poslední tréninky</h2>
@@ -1348,38 +2141,22 @@ export default function FitApp() {
             </div>
           </div>
 
-          {restTimer.active && restTimer.remaining > 0 && (() => {
-            const pct = restTimer.remaining / restTimer.seconds;
-            const radius = 52;
-            const circumference = 2 * Math.PI * radius;
-            const dashOffset = circumference * (1 - pct);
-            return (
+          {restTimer.active && restTimer.remaining > 0 && (
             <div style={{
-              textAlign: "center", padding: "20px", marginBottom: 14, borderRadius: C.r,
+              textAlign: "center", padding: "16px", marginBottom: 14, borderRadius: C.r,
               background: `linear-gradient(135deg, ${C.accent}15, ${C.rose}15)`,
-              border: `2px solid ${C.accent}40`,
+              border: `2px solid ${C.accent}40`, animation: "timerPulse 2s ease infinite"
             }}>
-              <div style={{ position: "relative", width: 130, height: 130, margin: "0 auto" }}>
-                <svg width="130" height="130" viewBox="0 0 130 130" style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx="65" cy="65" r={radius} fill="none" stroke="rgba(0,0,0,0.06)" strokeWidth="8" />
-                  <circle cx="65" cy="65" r={radius} fill="none" stroke={C.accent} strokeWidth="8"
-                    strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={dashOffset}
-                    style={{ transition: "stroke-dashoffset 1s linear" }} />
-                </svg>
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>{t.workout.rest}</div>
-                  <div style={{ fontFamily: "Syne, " + F, fontSize: 32, fontWeight: 900, color: C.accent, marginTop: 2 }}>
-                    {Math.floor(restTimer.remaining / 60)}:{(restTimer.remaining % 60).toString().padStart(2, "0")}
-                  </div>
-                </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1 }}>{t.workout.rest}</div>
+              <div style={{ fontFamily: "Syne, " + F, fontSize: 42, fontWeight: 900, color: C.accent, marginTop: 4 }}>
+                {Math.floor(restTimer.remaining / 60)}:{(restTimer.remaining % 60).toString().padStart(2, "0")}
               </div>
               <button onClick={() => { clearInterval(restTimerRef.current); setRestTimer(prev => ({ ...prev, active: false, remaining: 0 })); }}
-                style={{ marginTop: 12, padding: "8px 24px", borderRadius: C.rPill, border: "none", background: C.bg, color: C.textSec, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
+                style={{ marginTop: 8, padding: "6px 20px", borderRadius: C.rPill, border: "none", background: C.bg, color: C.textSec, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: F }}>
                 {t.workout.skip}
               </button>
             </div>
-            );
-          })()}
+          )}
 
           <div style={s.progressBarBg}>
             <div style={{
@@ -1392,17 +2169,8 @@ export default function FitApp() {
           </div>
 
           {(() => {
-            const firstUndoneIdx = currentWorkout.exercises.findIndex(e => !e.logged);
-            const renderCard = (ex, exIdx) => {
-              const isNext = exIdx === firstUndoneIdx;
-              return (
-              <div key={ex.id} style={{
-                ...s.exerciseCard,
-                borderLeftColor: (GROUP_COLORS[ex.muscleGroup] || {}).bg || "transparent",
-                ...(ex.logged ? s.exerciseCardDone : {}),
-                ...(isNext ? { boxShadow: `0 0 0 2px ${C.accent}44, ${C.shadow}` } : {}),
-                marginBottom: ex.pairId ? 0 : 14,
-              }}>
+            const renderCard = (ex, exIdx) => (
+              <div key={ex.id} style={{ ...s.exerciseCard, borderLeftColor: (GROUP_COLORS[ex.muscleGroup] || {}).bg || "transparent", ...(ex.logged ? s.exerciseCardDone : {}), marginBottom: ex.pairId ? 0 : 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -1470,7 +2238,7 @@ export default function FitApp() {
                         onChange={e => updateSetDetail(exIdx, si, "reps", e.target.value)}
                         style={{ ...s.setInput, ...(ex.isHold ? { background: C.sky } : {}) }} />
                       <button onClick={() => toggleSetDone(exIdx, si)}
-                        style={{ ...s.checkBtn, ...(set.done ? s.checkBtnDone : {}), ...(setPopId === `${exIdx}-${si}` ? { animation: "checkBounce 0.4s ease" } : {}) }}>
+                        style={{ ...s.checkBtn, ...(set.done ? s.checkBtnDone : {}), ...(setPopId === `${exIdx}-${si}` ? { animation: "popIn 0.4s ease" } : {}) }}>
                         {set.done ? I(IC.check, 16) : ""}
                       </button>
                     </div>
@@ -1503,7 +2271,6 @@ export default function FitApp() {
                 )}
               </div>
             );
-            };
 
             const groups = [];
             const processed = new Set();
@@ -1511,19 +2278,13 @@ export default function FitApp() {
             for (let i = 0; i < exs.length; i++) {
               if (processed.has(i)) continue;
               if (exs[i].pairId) {
-                const members = [];
-                for (let k = i; k < exs.length; k++) {
-                  if (exs[k].pairId === exs[i].pairId && !processed.has(k)) {
-                    members.push(k);
-                    processed.add(k);
-                  }
+                const j = exs.findIndex((e, idx) => idx > i && e.pairId === exs[i].pairId);
+                if (j !== -1 && !processed.has(j)) {
+                  processed.add(i);
+                  processed.add(j);
+                  groups.push({ type: "superset", indices: [i, j] });
+                  continue;
                 }
-                if (members.length >= 2) {
-                  groups.push({ type: "superset", indices: members });
-                } else {
-                  groups.push({ type: "solo", indices: members });
-                }
-                continue;
               }
               processed.add(i);
               groups.push({ type: "solo", indices: [i] });
@@ -1531,20 +2292,22 @@ export default function FitApp() {
 
             return groups.map((g, gi) => {
               if (g.type === "superset") {
-                const hintKey = g.indices.length >= 3 ? "supersetHint3" : "supersetHint2";
+                const [a, b] = g.indices;
                 return (
                   <div key={`ss_${gi}`} style={s.supersetWrap}>
                     <div style={s.supersetHeader}>
                       <span style={s.supersetBadge}>{t.workout.superset}</span>
-                      <span style={{ color: C.textSec, fontSize: 12 }}>{t.workout[hintKey]}</span>
+                      <span style={{ color: C.textSec, fontSize: 12 }}>{t.workout.supersetHint}</span>
                     </div>
                     <div style={{ ...s.supersetCards, display: "flex", flexDirection: "column", gap: 20 }}>
-                      {g.indices.map((idx, slotIdx) => (
-                        <div key={exs[idx].id}>
-                          <div style={{ ...s.supersetLabel, marginBottom: 8 }}>{String.fromCharCode(65 + slotIdx)}</div>
-                          {renderCard(exs[idx], idx)}
-                        </div>
-                      ))}
+                      <div>
+                        <div style={{ ...s.supersetLabel, marginBottom: 8 }}>A</div>
+                        {renderCard(exs[a], a)}
+                      </div>
+                      <div>
+                        <div style={{ ...s.supersetLabel, marginBottom: 8 }}>B</div>
+                        {renderCard(exs[b], b)}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1669,6 +2432,47 @@ export default function FitApp() {
         </div>
       )}
 
+      {/* ===== LOCATION PICKER ===== */}
+      {locationPickerVisible && (
+        <div style={s.modalOverlay} onClick={() => setLocationPickerVisible(false)}>
+          <div style={{ ...s.modal, paddingBottom: 40 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 11, color: C.textMuted, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 6 }}>Spustit trénink</div>
+                <h3 style={{ fontFamily: FSerif, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: C.text, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+                  Kde dnes<br/>cvičíš?
+                </h3>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontStyle: "italic" }}>přizpůsobí výběr cviků a vybavení</p>
+              </div>
+              <button onClick={() => setLocationPickerVisible(false)} style={s.closeBtn}>{I(IC.x, 16)}</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 1, background: "rgba(18,10,4,0.07)" }}>
+              {[
+                { key: "gym",    label: "Posilovna",        desc: "Činka, kladky, stroje, hrazda",    icon: IC.dumbbell, dark: true },
+                { key: "home",   label: "Doma",             desc: "Jednoručky, gumy, vlastní váha",   icon: IC.home,     dark: false },
+                { key: "custom", label: "Vlastní nastavení",desc: "Použít vybavení z Nastavení",      icon: IC.gear,     dark: false, muted: true },
+              ].map(opt => (
+                <button key={opt.key} onClick={() => genWorkoutWithLocation(opt.key)} style={{
+                  display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
+                  background: opt.dark ? "rgba(18,10,4,0.84)" : "rgba(255,255,255,0.55)",
+                  backdropFilter: "blur(12px)", border: "none", cursor: "pointer",
+                  fontFamily: F, textAlign: "left",
+                }}>
+                  <div style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: opt.dark ? "rgba(255,255,255,0.1)" : "rgba(18,10,4,0.05)", flexShrink: 0 }}>
+                    {I(opt.icon, 16, opt.dark ? "rgba(255,255,255,0.6)" : opt.muted ? "rgba(18,10,4,0.28)" : "rgba(18,10,4,0.5)")}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 500, color: opt.dark ? "rgba(255,255,255,0.9)" : opt.muted ? C.textMuted : C.text, letterSpacing: "-0.01em" }}>{opt.label}</div>
+                    <div style={{ fontSize: 11, fontStyle: "italic", color: opt.dark ? "rgba(255,255,255,0.3)" : C.textMuted, marginTop: 2 }}>{opt.desc}</div>
+                  </div>
+                  {I(IC.back, 14, opt.dark ? "rgba(255,255,255,0.2)" : "rgba(18,10,4,0.25)")}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== NAVIGATION ===== */}
       <nav style={s.nav}>
         {[
@@ -1702,19 +2506,19 @@ export default function FitApp() {
 // ========== STYLES ==========
 
 const globalCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Syne:wght@700;800&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #F5EFE6; }
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  body { background: #EAE5DF; }
   body::before {
     content: "";
     position: fixed;
     inset: 0;
-    opacity: 0.03;
     pointer-events: none;
-    z-index: 9999;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-repeat: repeat;
-    background-size: 200px 200px;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 120% 80% at -10% -10%, #FFBBA0 0%, transparent 52%),
+      radial-gradient(ellipse 80% 70% at 108% 28%, #CDA8FF 0%, transparent 48%),
+      radial-gradient(ellipse 70% 55% at 42% 112%, #A2D8FF 0%, transparent 52%);
   }
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -1750,18 +2554,6 @@ const globalCSS = `
     0% { transform: translate(-50%, -50%) scale(0); opacity: 0.8; border-width: 6px; }
     100% { transform: translate(-50%, -50%) scale(1); opacity: 0; border-width: 1px; }
   }
-  @keyframes checkBounce {
-    0% { transform: scale(1); }
-    30% { transform: scale(1.3); }
-    50% { transform: scale(0.9); }
-    70% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-  }
-  @keyframes cardDone {
-    0% { opacity: 1; }
-    30% { opacity: 0.6; }
-    100% { opacity: 1; }
-  }
   @keyframes viewSlideIn {
     from { opacity: 0; transform: translateX(60px); }
     to { opacity: 1; transform: translateX(0); }
@@ -1795,118 +2587,116 @@ const globalCSS = `
 `;
 
 const C = {
-  bg: "#F5EFE6",
-  card: "#FFFFFF",
-  cardGrad: "linear-gradient(145deg, #FFFFFF, #FDF9F4)",
-  text: "#2D2D2D",
-  textSec: "#7A7A7A",
-  textMuted: "#AAAAAA",
-  dark: "#2D2D2D",
-  accent: "#FF9B7B",
-  accentLight: "#FFF0EB",
-  mint: "#B8E6C8",
-  mintDark: "#5CA87A",
-  lavender: "#E0D4FF",
-  sky: "#D4EEFF",
-  peach: "#FFE0CC",
-  rose: "#FFD4E0",
-  border: "rgba(0,0,0,0.06)",
-  cardBorder: "1px solid rgba(0,0,0,0.08)",
-  shadow: "0 2px 16px rgba(45,45,45,0.06)",
-  shadowLg: "0 6px 32px rgba(45,45,45,0.08)",
-  r: 14,
-  rLg: 18,
-  rPill: 28,
+  bg: "transparent",
+  card: "rgba(255,255,255,0.62)",
+  cardGrad: "rgba(255,255,255,0.62)",
+  text: "rgba(18,10,4,0.84)",
+  textSec: "rgba(18,10,4,0.5)",
+  textMuted: "rgba(18,10,4,0.32)",
+  dark: "rgba(18,10,4,0.84)",
+  accent: "rgba(18,10,4,0.84)",
+  accentLight: "rgba(255,255,255,0.5)",
+  mint: "rgba(88,48,170,0.08)",
+  mintDark: "rgba(88,48,170,0.6)",
+  lavender: "rgba(88,48,170,0.06)",
+  sky: "rgba(162,216,255,0.2)",
+  peach: "rgba(255,187,160,0.2)",
+  rose: "rgba(205,168,255,0.2)",
+  border: "rgba(255,255,255,0.55)",
+  cardBorder: "1px solid rgba(255,255,255,0.55)",
+  shadow: "0 2px 12px rgba(18,10,4,0.06)",
+  shadowLg: "0 6px 24px rgba(18,10,4,0.1)",
+  r: 0,
+  rLg: 0,
+  rPill: 16,
 };
 
-const F = "'Nunito', sans-serif";
+const F = "'DM Sans', sans-serif";
+const FSerif = "'Instrument Serif', Georgia, serif";
 
 const styles = {
-  appWrap: { fontFamily: F, background: C.bg, minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 84, overflow: "hidden" },
-  toast: { position: "fixed", bottom: 94, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "12px 28px", borderRadius: C.rPill, fontWeight: 800, fontSize: 15, zIndex: 999, animation: "toastIn 0.3s ease", boxShadow: C.shadowLg, fontFamily: F },
-  page: { padding: "24px 18px 40px" },
-  eqGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, width: "100%", marginBottom: 24 },
-  eqBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 12px", background: C.cardGrad, border: C.cardBorder, borderRadius: C.r, color: C.textSec, cursor: "pointer", transition: "all 0.2s", boxShadow: C.shadow, fontFamily: F, fontWeight: 700 },
-  eqBtnActive: { background: C.accentLight, borderColor: C.accent, color: C.text },
-  headerArea: { marginBottom: 28 },
-  logo: { fontSize: "min(12vw, 48px)", fontWeight: 900, color: C.text, letterSpacing: -2, marginBottom: 20 },
-  statsRow: { display: "flex", gap: 10 },
-  statCard: { background: C.card, borderRadius: C.r, padding: "18px 12px", textAlign: "center", boxShadow: C.shadow, border: C.cardBorder },
-  statNum: { fontSize: 30, fontWeight: 900, color: C.text },
-  statLabel: { fontSize: 12, color: C.textMuted, marginTop: 6, fontWeight: 700 },
-  cycleCard: { background: C.cardGrad, borderRadius: C.r, padding: "18px 20px", marginBottom: 22, boxShadow: C.shadow, border: C.cardBorder },
+  appWrap: { fontFamily: F, background: "transparent", minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 84, overflow: "hidden" },
+  toast: { position: "fixed", bottom: 94, left: "50%", transform: "translateX(-50%)", background: "rgba(18,10,4,0.88)", backdropFilter: "blur(12px)", color: "#fff", padding: "12px 28px", borderRadius: 16, fontWeight: 500, fontSize: 14, zIndex: 999, animation: "toastIn 0.3s ease", boxShadow: C.shadowLg, fontFamily: F },
+  page: { padding: "24px 20px 40px", position: "relative", zIndex: 1 },
+  eqGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1, width: "100%", marginBottom: 24, background: "rgba(18,10,4,0.07)" },
+  eqBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 12px", background: "rgba(255,255,255,0.55)", backdropFilter: "blur(12px)", border: "none", borderRadius: 0, color: C.textSec, cursor: "pointer", transition: "all 0.15s", fontFamily: F, fontWeight: 400, fontSize: 13 },
+  eqBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff" },
+  headerArea: { marginBottom: 20 },
+  logo: { fontFamily: FSerif, fontStyle: "italic", fontSize: "min(14vw, 64px)", fontWeight: 400, color: C.text, letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 16 },
+  statsRow: { display: "flex", gap: 1 },
+  statCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "12px 14px", textAlign: "left", border: "none", borderTop: "1px solid rgba(255,255,255,0.6)", flex: 1 },
+  statNum: { fontFamily: FSerif, fontSize: 34, fontWeight: 400, color: C.text, letterSpacing: "-0.02em", lineHeight: 1 },
+  statLabel: { fontSize: 10, color: C.textMuted, marginTop: 3, fontWeight: 400, letterSpacing: "0.02em" },
+  cycleCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
   section: { marginTop: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 0 },
-  accordionWrap: { background: C.cardGrad, borderRadius: C.r, boxShadow: C.shadow, overflow: "hidden", border: C.cardBorder },
-  accordionBtn: {
-    display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
-    background: "none", border: "none", padding: "16px 18px", cursor: "pointer", WebkitTapHighlightColor: "transparent",
-  },
-  accordionChev: { width: 28, height: 28, borderRadius: 14, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  sectionTitle: { fontSize: 11, fontWeight: 500, color: C.textMuted, marginBottom: 8, letterSpacing: "0.04em", textTransform: "uppercase" },
+  accordionWrap: { background: "rgba(255,255,255,0.55)", backdropFilter: "blur(12px)", borderRadius: 0, overflow: "hidden", border: "none", borderTop: "1px solid rgba(255,255,255,0.6)", marginBottom: 1 },
+  accordionBtn: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "none", border: "none", padding: "16px 18px", cursor: "pointer", WebkitTapHighlightColor: "transparent" },
+  accordionChev: { width: 28, height: 28, borderRadius: 0, background: "rgba(18,10,4,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   accordionBody: { padding: "0 18px 16px 18px" },
-  recoveryGrid: { display: "flex", flexDirection: "column", gap: 12 },
+  recoveryGrid: { display: "flex", flexDirection: "column", gap: 10 },
   recoveryItem: { display: "grid", gridTemplateColumns: "80px 1fr 42px", alignItems: "center", gap: 12 },
-  recoveryLabel: { color: C.text, fontSize: 14, fontWeight: 700 },
-  recoveryBarBg: { height: 10, background: "rgba(0,0,0,0.05)", borderRadius: C.rPill, overflow: "hidden" },
-  recoveryBarFill: { height: "100%", borderRadius: C.rPill, transition: "width 0.5s ease" },
-  recoveryPct: { fontSize: 14, fontWeight: 800, textAlign: "right" },
-  generateBtn: { width: "100%", padding: "20px 32px", background: `linear-gradient(135deg, ${C.accent}, #FF7B9B)`, border: "none", borderRadius: C.rPill, color: "#fff", fontSize: 18, fontWeight: 800, fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 0, boxShadow: "0 4px 20px rgba(255,155,123,0.35)", position: "relative", overflow: "hidden" },
-  shimmer: { position: "absolute", top: 0, left: 0, width: "50%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)", animation: "shimmer 3s ease-in-out infinite", pointerEvents: "none" },
-  historyCard: { background: C.cardGrad, borderRadius: C.r, padding: "16px 18px", marginBottom: 12, boxShadow: C.shadow, border: C.cardBorder },
-  backBtn: { background: C.card, border: C.cardBorder, borderRadius: 12, color: C.text, fontSize: 18, width: 40, height: 40, cursor: "pointer", fontFamily: F, boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center" },
-  progressBarBg: { height: 8, background: "rgba(0,0,0,0.05)", borderRadius: C.rPill, marginBottom: 10, overflow: "hidden" },
-  progressBarFill: { height: "100%", background: C.accent, borderRadius: C.rPill, transition: "width 0.4s ease" },
-  exerciseCard: { background: C.cardGrad, borderRadius: C.r, padding: "18px", marginBottom: 14, transition: "all 0.3s", boxShadow: C.shadow, border: C.cardBorder, borderLeft: "5px solid transparent" },
-  exerciseCardDone: { background: "#F0FAF0", borderLeftColor: C.mint },
-  exNameBtn: { background: "none", border: "none", color: C.text, fontFamily: F, fontSize: 18, fontWeight: 800, cursor: "pointer", textAlign: "left", padding: 0 },
-  swapBtn: { background: C.bg, border: "none", borderRadius: C.r, padding: "6px 10px", fontSize: 15, cursor: "pointer", flexShrink: 0 },
-  tagBadge: { display: "inline-block", padding: "4px 12px", background: C.bg, borderRadius: C.rPill, color: C.textSec, fontSize: 12, fontWeight: 700 },
-  setsContainer: { marginTop: 16 },
-  setsHeader: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 8, marginBottom: 8 },
-  setsHeaderCell: { fontSize: 11, color: C.textMuted, fontWeight: 800, textTransform: "uppercase", textAlign: "center" },
-  setRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 8, marginBottom: 8, alignItems: "center" },
+  recoveryLabel: { color: C.text, fontSize: 13, fontWeight: 500 },
+  recoveryBarBg: { height: 2, background: "rgba(18,10,4,0.08)", borderRadius: 0, overflow: "hidden" },
+  recoveryBarFill: { height: "100%", borderRadius: 0, transition: "width 0.5s ease", background: "rgba(18,10,4,0.5)" },
+  recoveryPct: { fontSize: 13, fontWeight: 500, textAlign: "right", color: C.textSec },
+  generateBtn: { width: "100%", padding: "17px 24px", background: "rgba(18,10,4,0.84)", backdropFilter: "blur(8px)", border: "none", borderRadius: 16, color: "#fff", fontSize: 14, fontWeight: 500, fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 0, boxShadow: "0 2px 16px rgba(18,10,4,0.15)", transition: "opacity 0.1s, transform 0.1s", position: "relative", overflow: "hidden" },
+  shimmer: { position: "absolute", top: 0, left: 0, width: "50%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)", animation: "shimmer 3s ease-in-out infinite", pointerEvents: "none" },
+  historyCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
+  backBtn: { background: "rgba(255,255,255,0.48)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 0, color: C.text, width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
+  progressBarBg: { height: 1, background: "rgba(18,10,4,0.1)", borderRadius: 0, marginBottom: 12, overflow: "hidden" },
+  progressBarFill: { height: "100%", background: "rgba(18,10,4,0.4)", borderRadius: 0, transition: "width 0.4s ease" },
+  exerciseCard: { background: "rgba(255,255,255,0.58)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, transition: "all 0.2s", border: "1px solid rgba(255,255,255,0.52)", borderTopColor: "rgba(255,255,255,0.7)", borderLeft: "none" },
+  exerciseCardDone: { background: "rgba(88,48,170,0.07)" },
+  exNameBtn: { background: "none", border: "none", color: C.text, fontFamily: F, fontSize: 15, fontWeight: 500, cursor: "pointer", textAlign: "left", padding: 0, letterSpacing: "-0.01em" },
+  swapBtn: { background: "rgba(18,10,4,0.05)", border: "none", borderRadius: 0, padding: "6px 10px", fontSize: 15, cursor: "pointer", flexShrink: 0 },
+  tagBadge: { display: "inline-block", padding: "3px 10px", background: "rgba(18,10,4,0.06)", borderRadius: 0, color: C.textSec, fontSize: 11, fontWeight: 400 },
+  setsContainer: { marginTop: 12 },
+  setsHeader: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 6, marginBottom: 6 },
+  setsHeaderCell: { fontSize: 9, color: C.textMuted, fontWeight: 500, textTransform: "uppercase", textAlign: "center", letterSpacing: "0.06em" },
+  setRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 6, marginBottom: 4, alignItems: "center" },
   setRowDone: { opacity: 0.45 },
-  setCell: { textAlign: "center", fontSize: 15, color: C.textSec, fontWeight: 700 },
-  setInput: { background: C.bg, border: "none", borderRadius: 14, padding: "10px 10px", color: C.text, fontSize: 16, textAlign: "center", fontFamily: F, fontWeight: 700, width: "100%", outline: "none" },
-  checkBtn: { width: 28, height: 28, borderRadius: 8, border: "2px solid rgba(0,0,0,0.1)", background: C.bg, color: "transparent", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", justifySelf: "center", fontFamily: F, fontWeight: 800, transition: "all 0.2s" },
-  checkBtnDone: { background: C.mint, borderColor: C.mintDark, color: C.text },
-  filterBtn: { padding: "8px 16px", background: C.card, border: "none", borderRadius: C.rPill, color: C.textMuted, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: C.shadow },
-  filterBtnActive: { background: C.dark, color: "#fff" },
-  libraryItem: { display: "block", width: "100%", textAlign: "left", background: C.card, border: C.cardBorder, borderRadius: C.r, padding: "14px 18px", marginBottom: 10, cursor: "pointer", fontFamily: F, boxShadow: C.shadow },
-  modalOverlay: { position: "fixed", inset: 0, background: "rgba(45,45,45,0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100, padding: 0 },
-  modal: { background: "rgba(255,255,255,0.85)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderRadius: "20px 20px 0 0", padding: "28px 24px 32px", maxWidth: 480, width: "100%", boxShadow: "0 -8px 40px rgba(0,0,0,0.1)", borderTop: C.cardBorder },
-  modalBadge: { display: "inline-block", marginTop: 8, padding: "5px 14px", borderRadius: C.rPill, fontSize: 13, fontWeight: 700 },
-  closeBtn: { background: "rgba(0,0,0,0.05)", border: "none", borderRadius: "50%", color: C.textSec, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  nav: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: C.cardBorder, borderRadius: "18px 18px 0 0", padding: "10px 0 14px", zIndex: 50 },
-  navBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontFamily: F, padding: "6px 0", transition: "color 0.2s", fontWeight: 700, fontSize: 11 },
-  navBtnActive: { color: C.text },
-  progressItem: { display: "flex", alignItems: "center", justifyContent: "space-between", background: C.cardGrad, borderRadius: C.r, padding: "14px 18px", marginBottom: 10, boxShadow: C.shadow, border: C.cardBorder },
-  supersetWrap: { border: "none", borderRadius: C.rLg, padding: "6px 12px 12px", marginBottom: 14, background: C.lavender },
-  supersetHeader: { display: "flex", alignItems: "center", gap: 10, padding: "10px 8px 6px" },
-  supersetBadge: { fontSize: 12, fontWeight: 900, color: "#7A54B8", letterSpacing: 1.5, textTransform: "uppercase" },
+  setCell: { textAlign: "center", fontSize: 14, color: C.textSec, fontWeight: 400 },
+  setInput: { background: "rgba(18,10,4,0.05)", border: "none", borderRadius: 0, padding: "8px 8px", color: C.text, fontSize: 15, textAlign: "center", fontFamily: F, fontWeight: 500, width: "100%", outline: "none" },
+  checkBtn: { width: 26, height: 26, borderRadius: 0, border: "1px solid rgba(18,10,4,0.14)", background: "rgba(18,10,4,0.04)", color: "transparent", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", justifySelf: "center", transition: "all 0.15s" },
+  checkBtnDone: { background: "rgba(88,48,170,0.1)", borderColor: "rgba(88,48,170,0.3)", color: "rgba(88,48,170,0.7)" },
+  filterBtn: { padding: "8px 16px", background: "rgba(255,255,255,0.5)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 0, color: C.textMuted, fontSize: 13, fontWeight: 400, cursor: "pointer", fontFamily: F },
+  filterBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff", borderColor: "transparent" },
+  libraryItem: { display: "block", width: "100%", textAlign: "left", background: "rgba(255,255,255,0.55)", backdropFilter: "blur(12px)", border: "none", borderTop: "1px solid rgba(255,255,255,0.6)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, cursor: "pointer", fontFamily: F },
+  modalOverlay: { position: "fixed", inset: 0, background: "rgba(18,10,4,0.35)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100, padding: 0 },
+  modal: { background: "rgba(248,244,240,0.88)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)", borderRadius: 0, padding: "20px 22px 32px", maxWidth: 480, width: "100%", boxShadow: "0 -4px 32px rgba(18,10,4,0.12)", borderTop: "1px solid rgba(255,255,255,0.6)" },
+  modalBadge: { display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 0, fontSize: 12, fontWeight: 500 },
+  closeBtn: { background: "rgba(18,10,4,0.06)", border: "none", borderRadius: "50%", color: C.textSec, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  nav: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "rgba(234,229,223,0.84)", backdropFilter: "blur(20px) saturate(140%)", WebkitBackdropFilter: "blur(20px) saturate(140%)", borderTop: "1px solid rgba(255,255,255,0.52)", borderRadius: 0, padding: "10px 0 20px", zIndex: 50 },
+  navBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", color: "rgba(18,10,4,0.22)", cursor: "pointer", fontFamily: F, padding: "4px 0", transition: "color 0.15s", fontWeight: 400, fontSize: 10 },
+  navBtnActive: { color: "rgba(18,10,4,0.7)" },
+  progressItem: { display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "12px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
+  supersetWrap: { border: "none", borderRadius: 0, padding: "6px 0 0", marginBottom: 14 },
+  supersetHeader: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0 6px" },
+  supersetBadge: { fontSize: 9, fontWeight: 500, color: "rgba(88,48,170,0.45)", letterSpacing: "0.1em", textTransform: "uppercase" },
   supersetCards: { position: "relative" },
-  supersetLabel: { display: "inline-block", width: 28, height: 28, lineHeight: "28px", textAlign: "center", borderRadius: 10, background: "rgba(122,84,184,0.15)", color: "#7A54B8", fontSize: 14, fontWeight: 900, marginBottom: 4, marginLeft: 6 },
-  weakPointCard: { background: C.cardGrad, borderRadius: C.r, padding: "14px 18px", marginBottom: 10, boxShadow: C.shadow, border: C.cardBorder },
-  settingsHeading: { color: C.textSec, fontSize: 15, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 },
-  inputLabel: { display: "block", color: C.text, fontSize: 14, fontWeight: 700, marginBottom: 16 },
-  profileInput: { width: "100%", background: C.bg, border: "none", borderRadius: 10, padding: "12px 14px", color: C.text, fontSize: 16, fontFamily: F, fontWeight: 600, outline: "none", marginTop: 0 },
-  genderBtn: { flex: 1, padding: "12px", background: C.bg, border: "2px solid transparent", borderRadius: 10, color: C.textMuted, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, transition: "all 0.2s" },
-  genderBtnActive: { background: C.accentLight, borderColor: C.accent, color: C.text },
-  rpeRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", background: C.bg, borderRadius: `0 0 ${C.r}px ${C.r}px`, gap: 8, flexWrap: "wrap" },
-  rpeLabel: { fontSize: 13, color: C.textSec, fontWeight: 700 },
-  rpeBtns: { display: "flex", gap: 6 },
-  rpeBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 12px", background: C.card, border: "2px solid transparent", borderRadius: 14, cursor: "pointer", color: C.textMuted, fontFamily: F, fontWeight: 700, transition: "all 0.2s", boxShadow: C.shadow },
-  rpeBtnActive: { borderColor: C.accent, background: C.accentLight, color: C.text },
-  modalSection: { marginTop: 20, borderTop: `1px solid ${C.border}`, paddingTop: 16 },
-  modalSectionTitle: { margin: "0 0 10px 0", fontSize: 15, fontWeight: 800, color: C.text, letterSpacing: 0.3 },
-  modalList: { margin: 0, paddingLeft: 22 },
-  modalListItem: { color: C.textSec, fontSize: 15, lineHeight: 1.8, marginBottom: 4 },
-  historyTable: { borderRadius: 16, overflow: "hidden", background: C.bg },
-  historyHeader: { display: "flex", padding: "8px 10px", fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5 },
-  historyRow: { display: "flex", padding: "8px 10px", borderTop: "1px solid rgba(0,0,0,0.04)", fontSize: 14, color: C.textSec, fontWeight: 600 },
+  supersetLabel: { fontFamily: FSerif, fontStyle: "italic", display: "inline-block", width: 20, lineHeight: "20px", textAlign: "center", background: "transparent", color: "rgba(88,48,170,0.42)", fontSize: 15, fontWeight: 400, marginBottom: 4 },
+  weakPointCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "12px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
+  settingsHeading: { color: C.textMuted, fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 },
+  inputLabel: { display: "block", color: C.text, fontSize: 13, fontWeight: 400, marginBottom: 12 },
+  profileInput: { width: "100%", background: "rgba(18,10,4,0.05)", border: "none", borderRadius: 0, padding: "12px 14px", color: C.text, fontSize: 15, fontFamily: F, fontWeight: 400, outline: "none", marginTop: 0 },
+  genderBtn: { flex: 1, padding: "12px", background: "rgba(18,10,4,0.04)", border: "1px solid transparent", borderRadius: 0, color: C.textMuted, fontSize: 14, fontWeight: 400, cursor: "pointer", fontFamily: F, transition: "all 0.15s" },
+  genderBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff" },
+  rpeRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "rgba(18,10,4,0.04)", borderRadius: 0, gap: 8, flexWrap: "wrap" },
+  rpeLabel: { fontSize: 12, color: C.textSec, fontWeight: 400 },
+  rpeBtns: { display: "flex", gap: 4 },
+  rpeBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "7px 10px", background: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 0, cursor: "pointer", color: C.textMuted, fontFamily: F, fontWeight: 400, fontSize: 12, transition: "all 0.15s" },
+  rpeBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff", borderColor: "transparent" },
+  modalSection: { marginTop: 16, borderTop: "1px solid rgba(18,10,4,0.08)", paddingTop: 14 },
+  modalSectionTitle: { margin: "0 0 8px 0", fontSize: 13, fontWeight: 500, color: C.text },
+  modalList: { margin: 0, paddingLeft: 18 },
+  modalListItem: { color: C.textSec, fontSize: 13, lineHeight: 1.8, marginBottom: 4 },
+  historyTable: { borderRadius: 0, overflow: "hidden", background: "rgba(18,10,4,0.03)" },
+  historyHeader: { display: "flex", padding: "8px 10px", fontSize: 10, fontWeight: 500, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.04em" },
+  historyRow: { display: "flex", padding: "8px 10px", borderTop: "1px solid rgba(18,10,4,0.05)", fontSize: 13, color: C.textSec, fontWeight: 400 },
   historyCell: { flex: 1, textAlign: "center" },
-  videoBtn: { display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: C.dark, border: "none", borderRadius: C.rPill, color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", marginTop: 14, cursor: "pointer", fontFamily: F, boxShadow: C.shadow },
-  cyclePhases: { display: "flex", gap: 6, marginTop: 12 },
-  cyclePhaseItem: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", borderRadius: 14, background: C.bg, color: C.textMuted, transition: "all 0.2s", fontWeight: 700 },
-  cyclePhaseActive: { background: C.accentLight, color: C.accent },
+  videoBtn: { display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", background: "rgba(18,10,4,0.84)", border: "none", borderRadius: 16, color: "#fff", fontSize: 14, fontWeight: 500, textDecoration: "none", marginTop: 12, cursor: "pointer", fontFamily: F },
+  cyclePhases: { display: "flex", gap: 1, marginTop: 10 },
+  cyclePhaseItem: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", borderRadius: 0, background: "rgba(18,10,4,0.04)", color: C.textMuted, transition: "all 0.15s", fontWeight: 400, fontSize: 11 },
+  cyclePhaseActive: { background: "rgba(18,10,4,0.84)", color: "#fff" },
 };
