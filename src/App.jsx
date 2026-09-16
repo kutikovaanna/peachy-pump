@@ -1143,26 +1143,14 @@ export default function FitApp() {
 
   const finishOnboarding = () => { setOnboarded(true); };
 
-  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
-
-  const genWorkout = () => setLocationPickerVisible(true);
-
-  const genWorkoutWithLocation = (locationKey) => {
-    setLocationPickerVisible(false);
-    const presets = {
-      gym:    ["barbell","dumbbells","bench","rack","cables","machines","pullup_bar","bands","bodyweight","kettlebell"],
-      home:   ["dumbbells","bands","bodyweight","kettlebell"],
-      custom: null,
-    };
-    const eq = presets[locationKey] ?? equipment;
-    if (presets[locationKey]) setEquipment(presets[locationKey]);
+  const genWorkout = () => {
     let currentCycle = cycle;
     const cycleInfo = getCycleInfo(currentCycle);
     if (cycleInfo.needsReset || !currentCycle) {
       currentCycle = { startDate: new Date().toISOString() };
       setCycle(currentCycle);
     }
-    const w = generateWorkout(eq, history, currentCycle, profile);
+    const w = generateWorkout(equipment, history, currentCycle, profile);
     setCurrentWorkout(w);
     setWorkoutStartTime(Date.now());
     navigateView("workout");
@@ -1727,7 +1715,7 @@ export default function FitApp() {
         <div style={{ ...s.page, animation: `${viewTransition.direction === "forward" ? "viewSlideIn" : "viewSlideInReverse"} 0.3s ease` }}>
           <div style={s.headerArea}>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 16 }}>
-              <h1 style={{ ...s.logo, marginBottom: 0, lineHeight: 0.92 }}><span style={{ fontFamily: FSerif, fontStyle: "italic" }}>Peachy</span><br/><span style={{ fontFamily: FSerif, fontStyle: "normal", opacity: 0.5 }}>Pump</span></h1>
+              <h1 style={{ ...s.logo, marginBottom: 0, lineHeight: 0.85 }}><span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span><br/><span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span></h1>
               <div style={{ display: "flex", gap: 10, alignItems: "center", paddingBottom: 4 }}>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{totalWorkouts}</div>
@@ -1741,6 +1729,7 @@ export default function FitApp() {
               </div>
             </div>
 
+            <img src="/hero.png" alt="" style={{ width: "110%", marginLeft: "-5%", height: "auto", display: "block", marginBottom: 20 }} />
 
             {currentWorkout ? (
               <button onClick={() => { if (!workoutStartTime) setWorkoutStartTime(Date.now()); navigateView("workout"); }} style={s.generateBtn}>
@@ -2431,87 +2420,6 @@ export default function FitApp() {
         </div>
       )}
 
-      {/* ===== LOCATION PICKER ===== */}
-      {locationPickerVisible && (
-        <div style={s.modalOverlay} onClick={() => setLocationPickerVisible(false)}>
-          <div style={{ ...s.modal, paddingBottom: 40 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-              <div>
-                <div style={{ fontSize: 11, color: C.textMuted, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 6 }}>Spustit trénink</div>
-                <h3 style={{ fontFamily: FSerif, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: C.text, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
-                  Kde dnes<br/>cvičíš?
-                </h3>
-                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontStyle: "italic" }}>přizpůsobí výběr cviků a vybavení</p>
-              </div>
-              <button onClick={() => setLocationPickerVisible(false)} style={s.closeBtn}>{I(IC.x, 16)}</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, background: "rgba(18,10,4,0.07)" }}>
-              {[
-                { key: "gym",    label: "Posilovna",        desc: "Činka, kladky, stroje, hrazda",    icon: IC.dumbbell, dark: true },
-                { key: "home",   label: "Doma",             desc: "Jednoručky, gumy, vlastní váha",   icon: IC.home,     dark: false },
-                { key: "custom", label: "Vlastní nastavení",desc: "Použít vybavení z Nastavení",      icon: IC.gear,     dark: false, muted: true },
-              ].map(opt => (
-                <button key={opt.key} onClick={() => genWorkoutWithLocation(opt.key)} style={{
-                  display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
-                  background: opt.dark ? "rgba(18,10,4,0.84)" : "rgba(255,255,255,0.55)",
-                  backdropFilter: "blur(12px)", border: "none", cursor: "pointer",
-                  fontFamily: F, textAlign: "left",
-                }}>
-                  <div style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: opt.dark ? "rgba(255,255,255,0.1)" : "rgba(18,10,4,0.05)", flexShrink: 0 }}>
-                    {I(opt.icon, 16, opt.dark ? "rgba(255,255,255,0.6)" : opt.muted ? "rgba(18,10,4,0.28)" : "rgba(18,10,4,0.5)")}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 500, color: opt.dark ? "rgba(255,255,255,0.9)" : opt.muted ? C.textMuted : C.text, letterSpacing: "-0.01em" }}>{opt.label}</div>
-                    <div style={{ fontSize: 11, fontStyle: "italic", color: opt.dark ? "rgba(255,255,255,0.3)" : C.textMuted, marginTop: 2 }}>{opt.desc}</div>
-                  </div>
-                  {I(IC.back, 14, opt.dark ? "rgba(255,255,255,0.2)" : "rgba(18,10,4,0.25)")}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ===== LOCATION PICKER ===== */}
-      {locationPickerVisible && (
-        <div style={s.modalOverlay} onClick={() => setLocationPickerVisible(false)}>
-          <div style={{ ...s.modal, paddingBottom: 40 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-              <div>
-                <div style={{ fontSize: 11, color: C.textMuted, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 6 }}>Spustit trénink</div>
-                <h3 style={{ fontFamily: FSerif, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: C.text, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
-                  Kde dnes<br/>cvičíš?
-                </h3>
-                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontStyle: "italic" }}>přizpůsobí výběr cviků a vybavení</p>
-              </div>
-              <button onClick={() => setLocationPickerVisible(false)} style={s.closeBtn}>{I(IC.x, 16)}</button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 1, background: "rgba(18,10,4,0.07)" }}>
-              {[
-                { key: "gym",    label: "Posilovna",         desc: "Činka, kladky, stroje, hrazda",   icon: IC.dumbbell, dark: true },
-                { key: "home",   label: "Doma",              desc: "Jednoručky, gumy, vlastní váha",  icon: IC.home,     dark: false },
-                { key: "custom", label: "Vlastní nastavení", desc: "Použít vybavení z Nastavení",     icon: IC.gear,     dark: false, muted: true },
-              ].map(opt => (
-                <button key={opt.key} onClick={() => genWorkoutWithLocation(opt.key)} style={{
-                  display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
-                  background: opt.dark ? "rgba(18,10,4,0.84)" : "rgba(255,255,255,0.55)",
-                  backdropFilter: "blur(12px)", border: "none", cursor: "pointer", fontFamily: F, textAlign: "left",
-                }}>
-                  <div style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: opt.dark ? "rgba(255,255,255,0.1)" : "rgba(18,10,4,0.05)", flexShrink: 0 }}>
-                    {I(opt.icon, 16, opt.dark ? "rgba(255,255,255,0.6)" : opt.muted ? "rgba(18,10,4,0.28)" : "rgba(18,10,4,0.5)")}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 500, color: opt.dark ? "rgba(255,255,255,0.9)" : opt.muted ? C.textMuted : C.text, letterSpacing: "-0.01em" }}>{opt.label}</div>
-                    <div style={{ fontSize: 11, fontStyle: "italic", color: opt.dark ? "rgba(255,255,255,0.3)" : C.textMuted, marginTop: 2 }}>{opt.desc}</div>
-                  </div>
-                  {I(IC.back, 14, opt.dark ? "rgba(255,255,255,0.2)" : "rgba(18,10,4,0.25)")}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ===== NAVIGATION ===== */}
       <nav style={s.nav}>
         {[
@@ -2545,19 +2453,19 @@ export default function FitApp() {
 // ========== STYLES ==========
 
 const globalCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-  body { background: #EAE5DF; }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Syne:wght@700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #F5EFE6; }
   body::before {
     content: "";
     position: fixed;
     inset: 0;
+    opacity: 0.03;
     pointer-events: none;
-    z-index: 0;
-    background:
-      radial-gradient(ellipse 120% 80% at -10% -10%, #FFBBA0 0%, transparent 52%),
-      radial-gradient(ellipse 80% 70% at 108% 28%, #CDA8FF 0%, transparent 48%),
-      radial-gradient(ellipse 70% 55% at 42% 112%, #A2D8FF 0%, transparent 52%);
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px 200px;
   }
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -2626,116 +2534,118 @@ const globalCSS = `
 `;
 
 const C = {
-  bg: "transparent",
-  card: "rgba(255,255,255,0.62)",
-  cardGrad: "rgba(255,255,255,0.62)",
-  text: "rgba(18,10,4,0.84)",
-  textSec: "rgba(18,10,4,0.5)",
-  textMuted: "rgba(18,10,4,0.32)",
-  dark: "rgba(18,10,4,0.84)",
-  accent: "rgba(18,10,4,0.84)",
-  accentLight: "rgba(255,255,255,0.5)",
-  mint: "rgba(88,48,170,0.08)",
-  mintDark: "rgba(88,48,170,0.6)",
-  lavender: "rgba(88,48,170,0.06)",
-  sky: "rgba(162,216,255,0.2)",
-  peach: "rgba(255,187,160,0.2)",
-  rose: "rgba(205,168,255,0.2)",
-  border: "rgba(255,255,255,0.55)",
-  cardBorder: "1px solid rgba(255,255,255,0.55)",
-  shadow: "0 2px 12px rgba(18,10,4,0.06)",
-  shadowLg: "0 6px 24px rgba(18,10,4,0.1)",
-  r: 0,
-  rLg: 0,
-  rPill: 16,
+  bg: "#F5EFE6",
+  card: "#FFFFFF",
+  cardGrad: "linear-gradient(145deg, #FFFFFF, #FDF9F4)",
+  text: "#2D2D2D",
+  textSec: "#7A7A7A",
+  textMuted: "#AAAAAA",
+  dark: "#2D2D2D",
+  accent: "#FF9B7B",
+  accentLight: "#FFF0EB",
+  mint: "#B8E6C8",
+  mintDark: "#5CA87A",
+  lavender: "#E0D4FF",
+  sky: "#D4EEFF",
+  peach: "#FFE0CC",
+  rose: "#FFD4E0",
+  border: "rgba(0,0,0,0.06)",
+  cardBorder: "1px solid rgba(0,0,0,0.08)",
+  shadow: "0 2px 16px rgba(45,45,45,0.06)",
+  shadowLg: "0 6px 32px rgba(45,45,45,0.08)",
+  r: 14,
+  rLg: 18,
+  rPill: 28,
 };
 
-const F = "'DM Sans', sans-serif";
-const FSerif = "'Instrument Serif', Georgia, serif";
+const F = "'Nunito', sans-serif";
 
 const styles = {
-  appWrap: { fontFamily: F, background: "transparent", minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 84, overflow: "hidden" },
-  toast: { position: "fixed", bottom: 94, left: "50%", transform: "translateX(-50%)", background: "rgba(18,10,4,0.88)", backdropFilter: "blur(12px)", color: "#fff", padding: "12px 28px", borderRadius: 16, fontWeight: 500, fontSize: 14, zIndex: 999, animation: "toastIn 0.3s ease", boxShadow: C.shadowLg, fontFamily: F },
-  page: { padding: "24px 20px 40px", position: "relative", zIndex: 1 },
-  eqGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 1, width: "100%", marginBottom: 24, background: "rgba(18,10,4,0.07)" },
-  eqBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 12px", background: "rgba(255,255,255,0.55)", backdropFilter: "blur(12px)", border: "none", borderRadius: 0, color: C.textSec, cursor: "pointer", transition: "all 0.15s", fontFamily: F, fontWeight: 400, fontSize: 13 },
-  eqBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff" },
-  headerArea: { marginBottom: 20 },
-  logo: { fontFamily: FSerif, fontStyle: "italic", fontSize: "min(14vw, 64px)", fontWeight: 400, color: C.text, letterSpacing: "-0.02em", lineHeight: 1, marginBottom: 16 },
-  statsRow: { display: "flex", gap: 1 },
-  statCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "12px 14px", textAlign: "left", border: "none", borderTop: "1px solid rgba(255,255,255,0.6)", flex: 1 },
-  statNum: { fontFamily: FSerif, fontSize: 34, fontWeight: 400, color: C.text, letterSpacing: "-0.02em", lineHeight: 1 },
-  statLabel: { fontSize: 10, color: C.textMuted, marginTop: 3, fontWeight: 400, letterSpacing: "0.02em" },
-  cycleCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
+  appWrap: { fontFamily: F, background: C.bg, minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 84, overflow: "hidden" },
+  toast: { position: "fixed", bottom: 94, left: "50%", transform: "translateX(-50%)", background: C.dark, color: "#fff", padding: "12px 28px", borderRadius: C.rPill, fontWeight: 800, fontSize: 15, zIndex: 999, animation: "toastIn 0.3s ease", boxShadow: C.shadowLg, fontFamily: F },
+  page: { padding: "24px 18px 40px" },
+  eqGrid: { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, width: "100%", marginBottom: 24 },
+  eqBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "18px 12px", background: C.cardGrad, border: C.cardBorder, borderRadius: C.r, color: C.textSec, cursor: "pointer", transition: "all 0.2s", boxShadow: C.shadow, fontFamily: F, fontWeight: 700 },
+  eqBtnActive: { background: C.accentLight, borderColor: C.accent, color: C.text },
+  headerArea: { marginBottom: 28 },
+  logo: { fontSize: "min(12vw, 48px)", fontWeight: 900, color: C.text, letterSpacing: -2, marginBottom: 20 },
+  statsRow: { display: "flex", gap: 10 },
+  statCard: { background: C.card, borderRadius: C.r, padding: "18px 12px", textAlign: "center", boxShadow: C.shadow, border: C.cardBorder },
+  statNum: { fontSize: 30, fontWeight: 900, color: C.text },
+  statLabel: { fontSize: 12, color: C.textMuted, marginTop: 6, fontWeight: 700 },
+  cycleCard: { background: C.cardGrad, borderRadius: C.r, padding: "18px 20px", marginBottom: 22, boxShadow: C.shadow, border: C.cardBorder },
   section: { marginTop: 16 },
-  sectionTitle: { fontSize: 11, fontWeight: 500, color: C.textMuted, marginBottom: 8, letterSpacing: "0.04em", textTransform: "uppercase" },
-  accordionWrap: { background: "rgba(255,255,255,0.55)", backdropFilter: "blur(12px)", borderRadius: 0, overflow: "hidden", border: "none", borderTop: "1px solid rgba(255,255,255,0.6)", marginBottom: 1 },
-  accordionBtn: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "none", border: "none", padding: "16px 18px", cursor: "pointer", WebkitTapHighlightColor: "transparent" },
-  accordionChev: { width: 28, height: 28, borderRadius: 0, background: "rgba(18,10,4,0.05)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  sectionTitle: { fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 0 },
+  accordionWrap: { background: C.cardGrad, borderRadius: C.r, boxShadow: C.shadow, overflow: "hidden", border: C.cardBorder },
+  accordionBtn: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
+    background: "none", border: "none", padding: "16px 18px", cursor: "pointer", WebkitTapHighlightColor: "transparent",
+  },
+  accordionChev: { width: 28, height: 28, borderRadius: 14, background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   accordionBody: { padding: "0 18px 16px 18px" },
-  recoveryGrid: { display: "flex", flexDirection: "column", gap: 10 },
+  recoveryGrid: { display: "flex", flexDirection: "column", gap: 12 },
   recoveryItem: { display: "grid", gridTemplateColumns: "80px 1fr 42px", alignItems: "center", gap: 12 },
-  recoveryLabel: { color: C.text, fontSize: 13, fontWeight: 500 },
-  recoveryBarBg: { height: 2, background: "rgba(18,10,4,0.08)", borderRadius: 0, overflow: "hidden" },
-  recoveryBarFill: { height: "100%", borderRadius: 0, transition: "width 0.5s ease", background: "rgba(18,10,4,0.5)" },
-  recoveryPct: { fontSize: 13, fontWeight: 500, textAlign: "right", color: C.textSec },
-  generateBtn: { width: "100%", padding: "17px 24px", background: "rgba(18,10,4,0.84)", backdropFilter: "blur(8px)", border: "none", borderRadius: 16, color: "#fff", fontSize: 14, fontWeight: 500, fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 0, boxShadow: "0 2px 16px rgba(18,10,4,0.15)", transition: "opacity 0.1s, transform 0.1s", position: "relative", overflow: "hidden" },
-  shimmer: { position: "absolute", top: 0, left: 0, width: "50%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)", animation: "shimmer 3s ease-in-out infinite", pointerEvents: "none" },
-  historyCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
-  backBtn: { background: "rgba(255,255,255,0.48)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 0, color: C.text, width: 36, height: 36, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" },
-  progressBarBg: { height: 1, background: "rgba(18,10,4,0.1)", borderRadius: 0, marginBottom: 12, overflow: "hidden" },
-  progressBarFill: { height: "100%", background: "rgba(18,10,4,0.4)", borderRadius: 0, transition: "width 0.4s ease" },
-  exerciseCard: { background: "rgba(255,255,255,0.58)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, transition: "all 0.2s", border: "1px solid rgba(255,255,255,0.52)", borderTopColor: "rgba(255,255,255,0.7)", borderLeft: "none" },
-  exerciseCardDone: { background: "rgba(88,48,170,0.07)" },
-  exNameBtn: { background: "none", border: "none", color: C.text, fontFamily: F, fontSize: 15, fontWeight: 500, cursor: "pointer", textAlign: "left", padding: 0, letterSpacing: "-0.01em" },
-  swapBtn: { background: "rgba(18,10,4,0.05)", border: "none", borderRadius: 0, padding: "6px 10px", fontSize: 15, cursor: "pointer", flexShrink: 0 },
-  tagBadge: { display: "inline-block", padding: "3px 10px", background: "rgba(18,10,4,0.06)", borderRadius: 0, color: C.textSec, fontSize: 11, fontWeight: 400 },
-  setsContainer: { marginTop: 12 },
-  setsHeader: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 6, marginBottom: 6 },
-  setsHeaderCell: { fontSize: 9, color: C.textMuted, fontWeight: 500, textTransform: "uppercase", textAlign: "center", letterSpacing: "0.06em" },
-  setRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 6, marginBottom: 4, alignItems: "center" },
+  recoveryLabel: { color: C.text, fontSize: 14, fontWeight: 700 },
+  recoveryBarBg: { height: 10, background: "rgba(0,0,0,0.05)", borderRadius: C.rPill, overflow: "hidden" },
+  recoveryBarFill: { height: "100%", borderRadius: C.rPill, transition: "width 0.5s ease" },
+  recoveryPct: { fontSize: 14, fontWeight: 800, textAlign: "right" },
+  generateBtn: { width: "100%", padding: "20px 32px", background: `linear-gradient(135deg, ${C.accent}, #FF7B9B)`, border: "none", borderRadius: C.rPill, color: "#fff", fontSize: 18, fontWeight: 800, fontFamily: F, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 0, boxShadow: "0 4px 20px rgba(255,155,123,0.35)", position: "relative", overflow: "hidden" },
+  shimmer: { position: "absolute", top: 0, left: 0, width: "50%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)", animation: "shimmer 3s ease-in-out infinite", pointerEvents: "none" },
+  historyCard: { background: C.cardGrad, borderRadius: C.r, padding: "16px 18px", marginBottom: 12, boxShadow: C.shadow, border: C.cardBorder },
+  backBtn: { background: C.card, border: C.cardBorder, borderRadius: 12, color: C.text, fontSize: 18, width: 40, height: 40, cursor: "pointer", fontFamily: F, boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center" },
+  progressBarBg: { height: 8, background: "rgba(0,0,0,0.05)", borderRadius: C.rPill, marginBottom: 10, overflow: "hidden" },
+  progressBarFill: { height: "100%", background: C.accent, borderRadius: C.rPill, transition: "width 0.4s ease" },
+  exerciseCard: { background: C.cardGrad, borderRadius: C.r, padding: "18px", marginBottom: 14, transition: "all 0.3s", boxShadow: C.shadow, border: C.cardBorder, borderLeft: "5px solid transparent" },
+  exerciseCardDone: { background: "#F0FAF0", borderLeftColor: C.mint },
+  exNameBtn: { background: "none", border: "none", color: C.text, fontFamily: F, fontSize: 18, fontWeight: 800, cursor: "pointer", textAlign: "left", padding: 0 },
+  swapBtn: { background: C.bg, border: "none", borderRadius: C.r, padding: "6px 10px", fontSize: 15, cursor: "pointer", flexShrink: 0 },
+  tagBadge: { display: "inline-block", padding: "4px 12px", background: C.bg, borderRadius: C.rPill, color: C.textSec, fontSize: 12, fontWeight: 700 },
+  setsContainer: { marginTop: 16 },
+  setsHeader: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 8, marginBottom: 8 },
+  setsHeaderCell: { fontSize: 11, color: C.textMuted, fontWeight: 800, textTransform: "uppercase", textAlign: "center" },
+  setRow: { display: "grid", gridTemplateColumns: "36px 1fr 1fr 48px", gap: 8, marginBottom: 8, alignItems: "center" },
   setRowDone: { opacity: 0.45 },
-  setCell: { textAlign: "center", fontSize: 14, color: C.textSec, fontWeight: 400 },
-  setInput: { background: "rgba(18,10,4,0.05)", border: "none", borderRadius: 0, padding: "8px 8px", color: C.text, fontSize: 15, textAlign: "center", fontFamily: F, fontWeight: 500, width: "100%", outline: "none" },
-  checkBtn: { width: 26, height: 26, borderRadius: 0, border: "1px solid rgba(18,10,4,0.14)", background: "rgba(18,10,4,0.04)", color: "transparent", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", justifySelf: "center", transition: "all 0.15s" },
-  checkBtnDone: { background: "rgba(88,48,170,0.1)", borderColor: "rgba(88,48,170,0.3)", color: "rgba(88,48,170,0.7)" },
-  filterBtn: { padding: "8px 16px", background: "rgba(255,255,255,0.5)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 0, color: C.textMuted, fontSize: 13, fontWeight: 400, cursor: "pointer", fontFamily: F },
-  filterBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff", borderColor: "transparent" },
-  libraryItem: { display: "block", width: "100%", textAlign: "left", background: "rgba(255,255,255,0.55)", backdropFilter: "blur(12px)", border: "none", borderTop: "1px solid rgba(255,255,255,0.6)", borderRadius: 0, padding: "14px 16px", marginBottom: 1, cursor: "pointer", fontFamily: F },
-  modalOverlay: { position: "fixed", inset: 0, background: "rgba(18,10,4,0.35)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100, padding: 0 },
-  modal: { background: "rgba(248,244,240,0.88)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)", borderRadius: 0, padding: "20px 22px 32px", maxWidth: 480, width: "100%", boxShadow: "0 -4px 32px rgba(18,10,4,0.12)", borderTop: "1px solid rgba(255,255,255,0.6)" },
-  modalBadge: { display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 0, fontSize: 12, fontWeight: 500 },
-  closeBtn: { background: "rgba(18,10,4,0.06)", border: "none", borderRadius: "50%", color: C.textSec, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  nav: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "rgba(234,229,223,0.84)", backdropFilter: "blur(20px) saturate(140%)", WebkitBackdropFilter: "blur(20px) saturate(140%)", borderTop: "1px solid rgba(255,255,255,0.52)", borderRadius: 0, padding: "10px 0 20px", zIndex: 50 },
-  navBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 4, background: "none", border: "none", color: "rgba(18,10,4,0.22)", cursor: "pointer", fontFamily: F, padding: "4px 0", transition: "color 0.15s", fontWeight: 400, fontSize: 10 },
-  navBtnActive: { color: "rgba(18,10,4,0.7)" },
-  progressItem: { display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "12px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
-  supersetWrap: { border: "none", borderRadius: 0, padding: "6px 0 0", marginBottom: 14 },
-  supersetHeader: { display: "flex", alignItems: "center", gap: 10, padding: "8px 0 6px" },
-  supersetBadge: { fontSize: 9, fontWeight: 500, color: "rgba(88,48,170,0.45)", letterSpacing: "0.1em", textTransform: "uppercase" },
+  setCell: { textAlign: "center", fontSize: 15, color: C.textSec, fontWeight: 700 },
+  setInput: { background: C.bg, border: "none", borderRadius: 14, padding: "10px 10px", color: C.text, fontSize: 16, textAlign: "center", fontFamily: F, fontWeight: 700, width: "100%", outline: "none" },
+  checkBtn: { width: 28, height: 28, borderRadius: 8, border: "2px solid rgba(0,0,0,0.1)", background: C.bg, color: "transparent", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", justifySelf: "center", fontFamily: F, fontWeight: 800, transition: "all 0.2s" },
+  checkBtnDone: { background: C.mint, borderColor: C.mintDark, color: C.text },
+  filterBtn: { padding: "8px 16px", background: C.card, border: "none", borderRadius: C.rPill, color: C.textMuted, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: F, boxShadow: C.shadow },
+  filterBtnActive: { background: C.dark, color: "#fff" },
+  libraryItem: { display: "block", width: "100%", textAlign: "left", background: C.card, border: C.cardBorder, borderRadius: C.r, padding: "14px 18px", marginBottom: 10, cursor: "pointer", fontFamily: F, boxShadow: C.shadow },
+  modalOverlay: { position: "fixed", inset: 0, background: "rgba(45,45,45,0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 100, padding: 0 },
+  modal: { background: "rgba(255,255,255,0.85)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", borderRadius: "20px 20px 0 0", padding: "28px 24px 32px", maxWidth: 480, width: "100%", boxShadow: "0 -8px 40px rgba(0,0,0,0.1)", borderTop: C.cardBorder },
+  modalBadge: { display: "inline-block", marginTop: 8, padding: "5px 14px", borderRadius: C.rPill, fontSize: 13, fontWeight: 700 },
+  closeBtn: { background: "rgba(0,0,0,0.05)", border: "none", borderRadius: "50%", color: C.textSec, width: 32, height: 32, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  nav: { position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", background: "rgba(255,255,255,0.7)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: C.cardBorder, borderRadius: "18px 18px 0 0", padding: "10px 0 14px", zIndex: 50 },
+  navBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontFamily: F, padding: "6px 0", transition: "color 0.2s", fontWeight: 700, fontSize: 11 },
+  navBtnActive: { color: C.text },
+  progressItem: { display: "flex", alignItems: "center", justifyContent: "space-between", background: C.cardGrad, borderRadius: C.r, padding: "14px 18px", marginBottom: 10, boxShadow: C.shadow, border: C.cardBorder },
+  supersetWrap: { border: "none", borderRadius: C.rLg, padding: "6px 12px 12px", marginBottom: 14, background: C.lavender },
+  supersetHeader: { display: "flex", alignItems: "center", gap: 10, padding: "10px 8px 6px" },
+  supersetBadge: { fontSize: 12, fontWeight: 900, color: "#7A54B8", letterSpacing: 1.5, textTransform: "uppercase" },
   supersetCards: { position: "relative" },
-  supersetLabel: { fontFamily: FSerif, fontStyle: "italic", display: "inline-block", width: 20, lineHeight: "20px", textAlign: "center", background: "transparent", color: "rgba(88,48,170,0.42)", fontSize: 15, fontWeight: 400, marginBottom: 4 },
-  weakPointCard: { background: "rgba(255,255,255,0.5)", backdropFilter: "blur(12px)", borderRadius: 0, padding: "12px 16px", marginBottom: 1, border: "none", borderTop: "1px solid rgba(255,255,255,0.6)" },
-  settingsHeading: { color: C.textMuted, fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 },
-  inputLabel: { display: "block", color: C.text, fontSize: 13, fontWeight: 400, marginBottom: 12 },
-  profileInput: { width: "100%", background: "rgba(18,10,4,0.05)", border: "none", borderRadius: 0, padding: "12px 14px", color: C.text, fontSize: 15, fontFamily: F, fontWeight: 400, outline: "none", marginTop: 0 },
-  genderBtn: { flex: 1, padding: "12px", background: "rgba(18,10,4,0.04)", border: "1px solid transparent", borderRadius: 0, color: C.textMuted, fontSize: 14, fontWeight: 400, cursor: "pointer", fontFamily: F, transition: "all 0.15s" },
-  genderBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff" },
-  rpeRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", background: "rgba(18,10,4,0.04)", borderRadius: 0, gap: 8, flexWrap: "wrap" },
-  rpeLabel: { fontSize: 12, color: C.textSec, fontWeight: 400 },
-  rpeBtns: { display: "flex", gap: 4 },
-  rpeBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "7px 10px", background: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.55)", borderRadius: 0, cursor: "pointer", color: C.textMuted, fontFamily: F, fontWeight: 400, fontSize: 12, transition: "all 0.15s" },
-  rpeBtnActive: { background: "rgba(18,10,4,0.84)", color: "#fff", borderColor: "transparent" },
-  modalSection: { marginTop: 16, borderTop: "1px solid rgba(18,10,4,0.08)", paddingTop: 14 },
-  modalSectionTitle: { margin: "0 0 8px 0", fontSize: 13, fontWeight: 500, color: C.text },
-  modalList: { margin: 0, paddingLeft: 18 },
-  modalListItem: { color: C.textSec, fontSize: 13, lineHeight: 1.8, marginBottom: 4 },
-  historyTable: { borderRadius: 0, overflow: "hidden", background: "rgba(18,10,4,0.03)" },
-  historyHeader: { display: "flex", padding: "8px 10px", fontSize: 10, fontWeight: 500, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.04em" },
-  historyRow: { display: "flex", padding: "8px 10px", borderTop: "1px solid rgba(18,10,4,0.05)", fontSize: 13, color: C.textSec, fontWeight: 400 },
+  supersetLabel: { display: "inline-block", width: 28, height: 28, lineHeight: "28px", textAlign: "center", borderRadius: 10, background: "rgba(122,84,184,0.15)", color: "#7A54B8", fontSize: 14, fontWeight: 900, marginBottom: 4, marginLeft: 6 },
+  weakPointCard: { background: C.cardGrad, borderRadius: C.r, padding: "14px 18px", marginBottom: 10, boxShadow: C.shadow, border: C.cardBorder },
+  settingsHeading: { color: C.textSec, fontSize: 15, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 },
+  inputLabel: { display: "block", color: C.text, fontSize: 14, fontWeight: 700, marginBottom: 16 },
+  profileInput: { width: "100%", background: C.bg, border: "none", borderRadius: 10, padding: "12px 14px", color: C.text, fontSize: 16, fontFamily: F, fontWeight: 600, outline: "none", marginTop: 0 },
+  genderBtn: { flex: 1, padding: "12px", background: C.bg, border: "2px solid transparent", borderRadius: 10, color: C.textMuted, fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: F, transition: "all 0.2s" },
+  genderBtnActive: { background: C.accentLight, borderColor: C.accent, color: C.text },
+  rpeRow: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px", background: C.bg, borderRadius: `0 0 ${C.r}px ${C.r}px`, gap: 8, flexWrap: "wrap" },
+  rpeLabel: { fontSize: 13, color: C.textSec, fontWeight: 700 },
+  rpeBtns: { display: "flex", gap: 6 },
+  rpeBtn: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "8px 12px", background: C.card, border: "2px solid transparent", borderRadius: 14, cursor: "pointer", color: C.textMuted, fontFamily: F, fontWeight: 700, transition: "all 0.2s", boxShadow: C.shadow },
+  rpeBtnActive: { borderColor: C.accent, background: C.accentLight, color: C.text },
+  modalSection: { marginTop: 20, borderTop: `1px solid ${C.border}`, paddingTop: 16 },
+  modalSectionTitle: { margin: "0 0 10px 0", fontSize: 15, fontWeight: 800, color: C.text, letterSpacing: 0.3 },
+  modalList: { margin: 0, paddingLeft: 22 },
+  modalListItem: { color: C.textSec, fontSize: 15, lineHeight: 1.8, marginBottom: 4 },
+  historyTable: { borderRadius: 16, overflow: "hidden", background: C.bg },
+  historyHeader: { display: "flex", padding: "8px 10px", fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5 },
+  historyRow: { display: "flex", padding: "8px 10px", borderTop: "1px solid rgba(0,0,0,0.04)", fontSize: 14, color: C.textSec, fontWeight: 600 },
   historyCell: { flex: 1, textAlign: "center" },
-  videoBtn: { display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", background: "rgba(18,10,4,0.84)", border: "none", borderRadius: 16, color: "#fff", fontSize: 14, fontWeight: 500, textDecoration: "none", marginTop: 12, cursor: "pointer", fontFamily: F },
-  cyclePhases: { display: "flex", gap: 1, marginTop: 10 },
-  cyclePhaseItem: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", borderRadius: 0, background: "rgba(18,10,4,0.04)", color: C.textMuted, transition: "all 0.15s", fontWeight: 400, fontSize: 11 },
-  cyclePhaseActive: { background: "rgba(18,10,4,0.84)", color: "#fff" },
+  videoBtn: { display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", background: C.dark, border: "none", borderRadius: C.rPill, color: "#fff", fontSize: 15, fontWeight: 700, textDecoration: "none", marginTop: 14, cursor: "pointer", fontFamily: F, boxShadow: C.shadow },
+  cyclePhases: { display: "flex", gap: 6, marginTop: 12 },
+  cyclePhaseItem: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", borderRadius: 14, background: C.bg, color: C.textMuted, transition: "all 0.2s", fontWeight: 700 },
+  cyclePhaseActive: { background: C.accentLight, color: C.accent },
 };
