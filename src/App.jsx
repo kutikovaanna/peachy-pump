@@ -2472,6 +2472,46 @@ export default function FitApp() {
         </div>
       )}
 
+      {/* ===== LOCATION PICKER ===== */}
+      {locationPickerVisible && (
+        <div style={s.modalOverlay} onClick={() => setLocationPickerVisible(false)}>
+          <div style={{ ...s.modal, paddingBottom: 40 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+              <div>
+                <div style={{ fontSize: 11, color: C.textMuted, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 6 }}>Spustit trénink</div>
+                <h3 style={{ fontFamily: FSerif, fontSize: 32, fontWeight: 400, fontStyle: "italic", color: C.text, letterSpacing: "-0.02em", lineHeight: 1.05 }}>
+                  Kde dnes<br/>cvičíš?
+                </h3>
+                <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4, fontStyle: "italic" }}>přizpůsobí výběr cviků a vybavení</p>
+              </div>
+              <button onClick={() => setLocationPickerVisible(false)} style={s.closeBtn}>{I(IC.x, 16)}</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 1, background: "rgba(18,10,4,0.07)" }}>
+              {[
+                { key: "gym",    label: "Posilovna",         desc: "Činka, kladky, stroje, hrazda",   icon: IC.dumbbell, dark: true },
+                { key: "home",   label: "Doma",              desc: "Jednoručky, gumy, vlastní váha",  icon: IC.home,     dark: false },
+                { key: "custom", label: "Vlastní nastavení", desc: "Použít vybavení z Nastavení",     icon: IC.gear,     dark: false, muted: true },
+              ].map(opt => (
+                <button key={opt.key} onClick={() => genWorkoutWithLocation(opt.key)} style={{
+                  display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
+                  background: opt.dark ? "rgba(18,10,4,0.84)" : "rgba(255,255,255,0.55)",
+                  backdropFilter: "blur(12px)", border: "none", cursor: "pointer", fontFamily: F, textAlign: "left",
+                }}>
+                  <div style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", background: opt.dark ? "rgba(255,255,255,0.1)" : "rgba(18,10,4,0.05)", flexShrink: 0 }}>
+                    {I(opt.icon, 16, opt.dark ? "rgba(255,255,255,0.6)" : opt.muted ? "rgba(18,10,4,0.28)" : "rgba(18,10,4,0.5)")}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 500, color: opt.dark ? "rgba(255,255,255,0.9)" : opt.muted ? C.textMuted : C.text, letterSpacing: "-0.01em" }}>{opt.label}</div>
+                    <div style={{ fontSize: 11, fontStyle: "italic", color: opt.dark ? "rgba(255,255,255,0.3)" : C.textMuted, marginTop: 2 }}>{opt.desc}</div>
+                  </div>
+                  {I(IC.back, 14, opt.dark ? "rgba(255,255,255,0.2)" : "rgba(18,10,4,0.25)")}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ===== NAVIGATION ===== */}
       <nav style={s.nav}>
         {[
