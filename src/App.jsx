@@ -1715,7 +1715,7 @@ export default function FitApp() {
         <div style={{ ...s.page, animation: `${viewTransition.direction === "forward" ? "viewSlideIn" : "viewSlideInReverse"} 0.3s ease` }}>
           <div style={s.headerArea}>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 16 }}>
-              <h1 style={{ ...s.logo, marginBottom: 0, lineHeight: 0.85 }}><span style={{ fontFamily: "'Syne', sans-serif", color: C.accent }}>Peachy</span><br/><span style={{ fontFamily: "'Syne', sans-serif" }}>Pump</span></h1>
+              <h1 style={{ ...s.logo, marginBottom: 0, lineHeight: 0.85 }}><span style={{ fontFamily: FSerif, fontStyle: "italic" }}>Peachy</span><br/><span style={{ fontFamily: FSerif, fontStyle: "normal", opacity: 0.5 }}>Pump</span></h1>
               <div style={{ display: "flex", gap: 10, alignItems: "center", paddingBottom: 4 }}>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: C.text }}>{totalWorkouts}</div>
@@ -1728,8 +1728,6 @@ export default function FitApp() {
                 </div>
               </div>
             </div>
-
-            <img src="/hero.png" alt="" style={{ width: "110%", marginLeft: "-5%", height: "auto", display: "block", marginBottom: 20 }} />
 
             {currentWorkout ? (
               <button onClick={() => { if (!workoutStartTime) setWorkoutStartTime(Date.now()); navigateView("workout"); }} style={s.generateBtn}>
@@ -2453,9 +2451,9 @@ export default function FitApp() {
 // ========== STYLES ==========
 
 const globalCSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Syne:wght@700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #F5EFE6; }
+  body { background: #EAE5DF; }
   body::before {
     content: "";
     position: fixed;
@@ -2534,31 +2532,32 @@ const globalCSS = `
 `;
 
 const C = {
-  bg: "#F5EFE6",
-  card: "#FFFFFF",
-  cardGrad: "linear-gradient(145deg, #FFFFFF, #FDF9F4)",
-  text: "#2D2D2D",
-  textSec: "#7A7A7A",
-  textMuted: "#AAAAAA",
-  dark: "#2D2D2D",
-  accent: "#FF9B7B",
-  accentLight: "#FFF0EB",
-  mint: "#B8E6C8",
-  mintDark: "#5CA87A",
+  bg: "transparent",
+  card: "rgba(255,255,255,0.62)",
+  cardGrad: "rgba(255,255,255,0.62)",
+  text: "rgba(18,10,4,0.84)",
+  textSec: "rgba(18,10,4,0.5)",
+  textMuted: "rgba(18,10,4,0.32)",
+  dark: "rgba(10,8,4,0.84)",
+  accent: "rgba(10,8,4,0.84)",
+  accentLight: "rgba(255,255,255,0.5)",
+  mint: "rgba(88,48,170,0.08)",
+  mintDark: "rgba(88,48,170,0.6)",
   lavender: "#E0D4FF",
   sky: "#D4EEFF",
   peach: "#FFE0CC",
   rose: "#FFD4E0",
-  border: "rgba(0,0,0,0.06)",
-  cardBorder: "1px solid rgba(0,0,0,0.08)",
+  border: "rgba(255,255,255,0.55)",
+  cardBorder: "1px solid rgba(255,255,255,0.55)",
   shadow: "0 2px 16px rgba(45,45,45,0.06)",
   shadowLg: "0 6px 32px rgba(45,45,45,0.08)",
-  r: 14,
-  rLg: 18,
-  rPill: 28,
+  r: 0,
+  rLg: 0,
+  rPill: 16,
 };
 
-const F = "'Nunito', sans-serif";
+const F = "'DM Sans', sans-serif";
+const FSerif = "'Instrument Serif', Georgia, serif";
 
 const styles = {
   appWrap: { fontFamily: F, background: C.bg, minHeight: "100vh", maxWidth: 480, margin: "0 auto", position: "relative", paddingBottom: 84, overflow: "hidden" },
